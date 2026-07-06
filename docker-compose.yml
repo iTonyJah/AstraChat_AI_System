@@ -24,38 +24,38 @@ services:
     networks:
       - astrachat-network
 
-  # ComfyUI — генерация изображений (GGUF Unet через ComfyUI-GGUF). Модели: ./models/comfyui → /app/ComfyUI/models
-  # UI/API: http://localhost:8188 ; из astrachat-backend: http://comfyui:8188 (переменная IMAGE_GEN_COMFYUI_URL)
-  comfyui:
-    build:
-      context: ./docker/comfyui
-      dockerfile: Dockerfile
-    container_name: astrachat-comfyui
-    ports:
-      - "8188:8188"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      # RTX 50xx: образ на PyTorch 2.7 + CUDA 12.8. Временный обход без GPU: COMFYUI_FORCE_CPU=1
-      - COMFYUI_FORCE_CPU=${COMFYUI_FORCE_CPU:-0}
-    volumes:
-      - ./models/comfyui:/app/ComfyUI/models
-      - comfyui_output:/app/ComfyUI/output
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8188/queue"]
-      interval: 20s
-      timeout: 10s
-      retries: 25
-      start_period: 360s
-    restart: unless-stopped
-    networks:
-      - astrachat-network
+#  # ComfyUI — генерация изображений (GGUF Unet через ComfyUI-GGUF). Модели: ./models/comfyui → /app/ComfyUI/models
+#  # UI/API: http://localhost:8188 ; из astrachat-backend: http://comfyui:8188 (переменная IMAGE_GEN_COMFYUI_URL)
+#  comfyui:
+#    build:
+#      context: ./docker/comfyui
+#      dockerfile: Dockerfile
+#    container_name: astrachat-comfyui
+#    ports:
+#      - "8188:8188"
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: all
+#              capabilities: [gpu]
+#    environment:
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      # RTX 50xx: образ на PyTorch 2.7 + CUDA 12.8. Временный обход без GPU: COMFYUI_FORCE_CPU=1
+#      - COMFYUI_FORCE_CPU=${COMFYUI_FORCE_CPU:-0}
+#    volumes:
+#      - ./models/comfyui:/app/ComfyUI/models
+#      - comfyui_output:/app/ComfyUI/output
+#    healthcheck:
+#      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8188/queue"]
+#      interval: 20s
+#      timeout: 10s
+#      retries: 25
+#      start_period: 360s
+#    restart: unless-stopped
+#    networks:
+#      - astrachat-network
 
   # STT Service (WhisperX)
   stt-service:
@@ -207,8 +207,8 @@ services:
       # ComfyUI в compose: бэкенд ходит на сервис comfyui (перекрывает comfyui_base_url из YAML при генерации картинок)
       - IMAGE_GEN_COMFYUI_URL=http://comfyui:8188
     depends_on:
-      comfyui:
-        condition: service_started
+      # comfyui:
+        # condition: service_started
       llm-service:
         condition: service_started
       stt-service:

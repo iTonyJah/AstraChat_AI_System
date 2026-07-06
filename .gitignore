@@ -1,0 +1,31 @@
+# Секреты
+.env
+.env.*
+.env.local
+
+# AI Models (большие файлы моделей)
+model_small/
+silero_models/
+whisperx_models/
+diarize_models/
+models/
+*.gguf
+*.bin
+*.pt
+*.pth
+*.safetensors
+
+# Скомпилированные артефакты и кэши
+backend/backend
+__pycache__/
+**/__pycache__/
+.cache/
+*.pyc
+*.pyo
+venv/
+.venv/
+huggingface/
+torch/
+
+
+

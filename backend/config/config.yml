@@ -79,8 +79,8 @@ microservices:
         # base_url подставляется из urls.llm_service_docker / llm_service_port при загрузке, если пусто
         base_url: ""
     models:
-      default: "Qwen3.5-4B-UD-Q8_K_XL"
-      fallback: "Qwen3-Coder-30B-A3B-Instruct-Q8_0"
+      default: "Qwen3.5-9B-q4_k_m"
+      fallback: "qwen2.5-coder-7b-instruct-q5_k_m"
 
   stt:
     enabled: true

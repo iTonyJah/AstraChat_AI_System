@@ -12,13 +12,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: 50G  # Ограничение памяти для контейнера
+          memory: 24G  # Ограничение памяти для контейнера
         reservations:
-          memory: 32G  # Резервируем память
-          devices:
-            - driver: nvidia
-              count: all  # Используем все доступные GPU
-              capabilities: [gpu]  # Возможности GPU
+          memory: 12G  # Резервируем память
+          # devices:
+          #   - driver: nvidia
+          #     count: all  # Используем все доступные GPU
+          #     capabilities: [gpu]  # Возможности GPU
     
     volumes:
       # Монтируем конфигурацию
@@ -34,8 +34,8 @@ services:
       - CONFIG_PATH=${CONFIG_PATH}
       - PYTHONPATH=/app
       # GPU настройки для vLLM
-      - NVIDIA_VISIBLE_DEVICES=all
-      - CUDA_VISIBLE_DEVICES=0
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - CUDA_VISIBLE_DEVICES=0
       # Пути к моделям (все значения из .env файла, если он есть)
       - LLM_MODEL_PATH=${LLM_MODEL_PATH}
       - LLM_MODEL_NAME=${LLM_MODEL_NAME}
@@ -46,7 +46,9 @@ services:
       - DIARIZATION_CONFIG_PATH=${DIARIZATION_CONFIG_PATH}
     restart: unless-stopped
     networks:
-      - astrachat-network
+      astrachat-network:
+        aliases:
+          - llm-service
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/v1/health"]
       interval: 30s
