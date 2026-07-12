@@ -26,6 +26,3 @@ venv/
 .venv/
 huggingface/
 torch/
-
-
-

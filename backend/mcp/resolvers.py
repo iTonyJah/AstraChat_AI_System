@@ -5,6 +5,20 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 
+def mcp_server_tool_id(server_id: str) -> str:
+    return f"server:mcp:{server_id}"
+
+
+def resolve_chat_tool_ids(payload_tool_ids: Optional[List[str]] = None) -> List[str]:
+    """Только явные tool_ids с клиента (переключатель MCP в UI). Без серверного fallback."""
+    explicit: List[str] = []
+    for raw in payload_tool_ids or []:
+        tid = str(raw or "").strip()
+        if tid:
+            explicit.append(tid)
+    return explicit
+
+
 def parse_mcp_server_ids(tool_ids: Optional[List[str]]) -> List[str]:
     """OWUI-compatible: ``server:mcp:{id}`` | ``mcp:{id}`` | plain ``{id}``."""
     result: List[str] = []

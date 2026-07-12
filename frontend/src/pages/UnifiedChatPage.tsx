@@ -44,9 +44,7 @@ import {
   ContentCopy as CopyIcon,
   Stop as StopIcon,
   Refresh as RefreshIcon,
-  Edit as EditIcon,
   Mic as MicIcon,
-  VolumeUp as VolumeUpIcon,
   Close as CloseIcon,
   Upload as UploadIcon,
   Square as SquareIcon,
@@ -71,9 +69,8 @@ import { useAppContext, useAppActions, Message, MultiLLMResponseSlot } from '../
 import { useSocket } from '../contexts/SocketContext';
 import { getApiUrl, getWsUrl, API_ENDPOINTS } from '../config/api';
 import MessageRenderer from '../components/MessageRenderer';
-import ImageGenerationPlaceholder from '../components/ImageGenerationPlaceholder';
 import { DocumentSearchPanel } from '../components/DocumentSearchPanel';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import TranscriptionResultModal from '../components/TranscriptionResultModal';
 import ModelSelector from '../components/ModelSelector';
 import MessageNavigationBar from '../components/MessageNavigationBar';
@@ -89,7 +86,7 @@ import TopErrorBanner from '../components/TopErrorBanner';
 import { logChatAttach, logChatAttachError } from '../utils/chatAttachDebug';
 import InlineAttachmentsList from '../components/InlineAttachmentsList';
 import InlineImageLightbox from '../components/InlineImageLightbox';
-import CreationsGallery from '../components/CreationsGallery';
+import ImageGenerationPlaceholder from '../components/ImageGenerationPlaceholder';
 import { incrementTabNotification } from '../utils/tabNotifications';
 import ChatGearAgentsPanel from '../components/ChatGearAgentsPanel';
 import ChatGearMcpPanel from '../components/ChatGearMcpPanel';
@@ -97,13 +94,26 @@ import VoiceChatDialog from '../components/VoiceChatDialog';
 import AgentConstructorPanel from '../components/AgentConstructorPanel';
 import AgentSelector from '../components/AgentSelector';
 import ChatInputStatusCluster from '../components/ChatInputStatusCluster';
+import ChatContextUsagePopover from '../components/ChatContextUsagePopover';
+import MessageFeedbackBar from '../components/MessageFeedbackBar';
+import MessageMoreActionsMenu from '../components/MessageMoreActionsMenu';
+import type { MessageFeedback } from '../constants/messageFeedback';
 import { useMyAgentSelection, useOrchestratorAgentsAnyActive } from '../hooks/useChatInputAgentIndicators';
+import { useChatContextUsage } from '../hooks/useChatContextUsage';
 import { useChatInputMcpIndicators } from '../mcp/hooks/useChatInputMcpIndicators';
 import { useMcpStreamingTools } from '../mcp/hooks/useMcpStreamingTools';
 import McpToolCallsPanel from '../mcp/components/McpToolCallsPanel';
+import { mergeMcpToolCalls } from '../mcp/utils/mergeToolCalls';
 import McpLiveToolsIndicator from '../mcp/components/McpLiveToolsIndicator';
-import McpSuggestionChips from '../mcp/components/McpSuggestionChips';
-import { getAtlassianSuggestions } from '../mcp/plugins/atlassianSuggestions';
+import ChatInputSuggestions from '../components/ChatInputSuggestions';
+import MessageFollowUpSuggestions from '../components/MessageFollowUpSuggestions';
+import { getChatInputSuggestions } from '../chat/getChatInputSuggestions';
+import { loadFollowUpSettings } from '../chat/followUpSettings';
+import { useFollowUpSuggestions } from '../hooks/useFollowUpSuggestions';
+import {
+  estimateLibraryClusterWidthPx,
+  getToolsButtonInsetSp,
+} from '../components/chatInputLayout';
 import { getSidebarPanelBackground } from '../constants/sidebarPanelColor';
 import { getWorkZoneBackgroundColor, getWorkZoneCustomImage, isWorkZoneAnimatedMode } from '../constants/workZoneBackground';
 import { useWorkZoneBgMode } from '../hooks/useWorkZoneBgMode';
@@ -233,6 +243,17 @@ function getMultiLlmColumnDisplayBody(response: MultiLLMResponseSlot): string {
   return response.isStreaming ? response.content : response.content.trimEnd();
 }
 
+function getAssistantInlineAttachments(message: Message): NonNullable<Message['inlineAttachments']> | undefined {
+  const variants = message.inlineAttachmentVariants;
+  if (variants?.length) {
+    const idx = message.currentResponseIndex ?? variants.length - 1;
+    const clamped = Math.max(0, Math.min(idx, variants.length - 1));
+    const picked = variants[clamped];
+    return picked?.length ? picked : undefined;
+  }
+  return message.inlineAttachments?.length ? message.inlineAttachments : undefined;
+}
+
 function extractReasoningBlock(
   rawText: string,
   isStreaming?: boolean,
@@ -312,9 +333,20 @@ interface MessageCardData {
   handleRegenerate: (message: Message) => void;
   handleEditMultiLlmColumn: (message: Message, slotIndex: number) => void;
   handleRegenerateMultiLlmColumn: (message: Message, slotIndex: number) => void;
+  handleMessageFeedback: (
+    message: Message,
+    payload: {
+      rating: 'like' | 'dislike' | null;
+      tags?: string[];
+      comment?: string;
+      multiLlmSlotIndex?: number;
+    },
+  ) => void | Promise<void>;
   synthesizeSpeech: (text: string) => void;
   handleEnterShareMode: () => void;
+  handleBranchToNewChat: (message: Message, multiLlmSlotIndex?: number) => void;
   handleToggleMessage: (userMsgId: string, assistantMsgId: string) => void;
+  handleFollowUpSelect: (content: string) => void;
   updateMessage: (
     chatId: string,
     messageId: string,
@@ -329,6 +361,7 @@ interface MessageCardData {
     inlineAttachments?: Message['inlineAttachments'],
     isImageGenerating?: boolean,
     inlineAttachmentVariants?: Message['inlineAttachmentVariants'],
+    feedback?: MessageFeedback | null,
   ) => void;
   formatTimestamp: (ts: string) => string;
   currentChatId: string | undefined;
@@ -344,11 +377,15 @@ interface MessageCardProps {
   shareMode: boolean;
   isSpeaking: boolean;
   isDarkMode: boolean;
+  /** Сообщение — последнее в чате (как history.currentId в Open WebUI). */
+  isLastChatMessage: boolean;
   interfaceSettings: {
     userNoBorder: boolean;
     assistantNoBorder: boolean;
     leftAlignMessages: boolean;
     showUserName: boolean;
+    followUpAutoGenerate: boolean;
+    followUpShowScope: 'last' | 'all';
   };
   username: string | undefined;
   dataRef: React.MutableRefObject<MessageCardData>;
@@ -555,18 +592,14 @@ const ReasoningBlock = React.memo(({
 
 const MessageCardComponent = ({
   message, index, isPairStart, isSelected, nextMessageId,
-  shareMode, isSpeaking, isDarkMode, interfaceSettings, username, dataRef,
+  shareMode, isSpeaking, isDarkMode, isLastChatMessage, interfaceSettings, username, dataRef,
 }: MessageCardProps): React.ReactElement => {
   const isUser = message.role === 'user';
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredMultiLlmCol, setHoveredMultiLlmCol] = useState<number | null>(null);
   const [reasoningExpanded, setReasoningExpanded] = useState(false);
   const [multiReasoningExpanded, setMultiReasoningExpanded] = useState<Record<number, boolean>>({});
-  const [lightboxSrc, setLightboxSrc] = useState<{
-    src: string;
-    name: string;
-    editPrompt?: string;
-  } | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<{ src: string; name: string } | null>(null);
   const thinkingStartRef = useRef<number | null>(null);
   const [thinkingDurationSec, setThinkingDurationSec] = useState<number | null>(null);
   const [liveThinkingSec, setLiveThinkingSec] = useState<number | null>(null);
@@ -598,13 +631,15 @@ const MessageCardComponent = ({
     () => extractReasoningBlock(visibleBody, message.isStreaming),
     [visibleBody, message.isStreaming],
   );
-
-  const showImageGenPlaceholder = useMemo(
-    () =>
-      !isUser &&
-      Boolean(message.isImageGenerating) &&
-      !message.inlineAttachments?.some((a) => a.contentType === 'image' && a.preview),
-    [isUser, message.isImageGenerating, message.inlineAttachments],
+  const assistantInlineAttachments = useMemo(
+    () => (isUser ? undefined : getAssistantInlineAttachments(message)),
+    [isUser, message],
+  );
+  const showImageGenerationPlaceholder = Boolean(
+    !isUser &&
+      message.isImageGenerating &&
+      message.isStreaming &&
+      !assistantInlineAttachments?.length,
   );
   const isReasoningStreaming = useMemo(() => {
     // В текущем потоке reasoning часто приходит уже в закрытом <think>...</think>,
@@ -742,9 +777,22 @@ const MessageCardComponent = ({
   }, [message.isStreaming, message.content]);
 
   const hideOuterActionBar = !isUser && (message.multiLLMResponses?.length ?? 0) > 0;
-  const variantIndex = message.currentResponseIndex ?? 0;
-  const displayInlineAttachments =
-    message.inlineAttachmentVariants?.[variantIndex] ?? message.inlineAttachments;
+  const showFollowUpSuggestions =
+    !isUser &&
+    !shareMode &&
+    interfaceSettings.followUpAutoGenerate &&
+    !message.multiLLMResponses?.length &&
+    Boolean(message.followUpSuggestions?.length) &&
+    (interfaceSettings.followUpShowScope === 'all' || isLastChatMessage);
+
+  const followUpBlock = showFollowUpSuggestions ? (
+    <MessageFollowUpSuggestions
+      suggestions={message.followUpSuggestions}
+      disabled={Boolean(message.isStreaming)}
+      isDarkMode={isDarkMode}
+      onSelect={(content) => dataRef.current.handleFollowUpSelect(content)}
+    />
+  ) : null;
   const multiLlmActionIconSx = {
     opacity: 0.7,
     p: 0.5,
@@ -785,10 +833,15 @@ const MessageCardComponent = ({
           <McpToolCallsPanel toolCalls={message.mcpToolCalls} />
         )}
 
-        {/* Inline-вложения (пользователь и сгенерированные картинки ассистента) */}
-        {displayInlineAttachments && displayInlineAttachments.length > 0 && (
+        {showImageGenerationPlaceholder ? (
+          <Box sx={{ mb: parsedMessage.visibleContent.trim() ? 1 : 0 }}>
+            <ImageGenerationPlaceholder />
+          </Box>
+        ) : null}
+
+        {!isUser && assistantInlineAttachments && assistantInlineAttachments.length > 0 && (
           <InlineAttachmentsList
-            files={displayInlineAttachments.map((a) => ({
+            files={assistantInlineAttachments.map((a) => ({
               name: a.name,
               contentType: a.contentType,
               imageSrc: a.contentType === 'image' ? a.preview : undefined,
@@ -796,14 +849,23 @@ const MessageCardComponent = ({
             }))}
             isDarkMode={isDarkMode}
             variant="message"
-            onImageExpand={(resolvedSrc, name) => {
-              const promptMatch = message.content.match(/по запросу:\s*«([^»]+)»/i);
-              setLightboxSrc({
-                src: resolvedSrc,
-                name,
-                editPrompt: promptMatch?.[1]?.trim(),
-              });
-            }}
+            onImageExpand={(resolvedSrc, name) => setLightboxSrc({ src: resolvedSrc, name })}
+            sx={{ mb: 1 }}
+          />
+        )}
+
+        {/* Inline-вложения пользователя — тот же вид, что при прикреплении через «+» */}
+        {isUser && message.inlineAttachments && message.inlineAttachments.length > 0 && (
+          <InlineAttachmentsList
+            files={message.inlineAttachments.map((a) => ({
+              name: a.name,
+              contentType: a.contentType,
+              imageSrc: a.contentType === 'image' ? a.preview : undefined,
+              size: a.size,
+            }))}
+            isDarkMode={isDarkMode}
+            variant="message"
+            onImageExpand={(resolvedSrc, name) => setLightboxSrc({ src: resolvedSrc, name })}
             sx={{ mb: 1 }}
           />
         )}
@@ -987,15 +1049,45 @@ const MessageCardComponent = ({
                           <CopyIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Редактировать">
-                        <IconButton
-                          size="small"
-                          onClick={() => dataRef.current.handleEditMultiLlmColumn(message, respIndex)}
-                          sx={multiLlmActionIconSx}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {!response.error && !response.isStreaming ? (
+                        <MessageFeedbackBar
+                          feedback={response.feedback}
+                          disabled={Boolean(message.isStreaming)}
+                          isDarkMode={isDarkMode}
+                          compact
+                          onLike={() =>
+                            dataRef.current.handleMessageFeedback(message, {
+                              rating: 'like',
+                              multiLlmSlotIndex: respIndex,
+                            })
+                          }
+                          onDislikeSubmit={({ tags, comment }: { tags: string[]; comment: string }) =>
+                            dataRef.current.handleMessageFeedback(message, {
+                              rating: 'dislike',
+                              tags,
+                              comment,
+                              multiLlmSlotIndex: respIndex,
+                            })
+                          }
+                          onClear={() =>
+                            dataRef.current.handleMessageFeedback(message, {
+                              rating: null,
+                              multiLlmSlotIndex: respIndex,
+                            })
+                          }
+                        />
+                      ) : null}
+                      {!shareMode ? (
+                        <Tooltip title="Поделиться">
+                          <IconButton
+                            size="small"
+                            onClick={() => dataRef.current.handleEnterShareMode()}
+                            sx={multiLlmActionIconSx}
+                          >
+                            <ShareIcon />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
                       <Tooltip title="Перегенерировать">
                         <span>
                           <IconButton
@@ -1008,37 +1100,25 @@ const MessageCardComponent = ({
                           </IconButton>
                         </span>
                       </Tooltip>
-                      <Tooltip title="Прочесть вслух">
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            dataRef.current.synthesizeSpeech(getMultiLlmColumnDisplayText(response))
-                          }
-                          disabled={isSpeaking}
-                          sx={multiLlmActionIconSx}
-                        >
-                          <VolumeUpIcon />
-                        </IconButton>
-                      </Tooltip>
-                      {!shareMode ? (
-                        <Tooltip title="Поделиться">
-                          <IconButton
-                            size="small"
-                            onClick={() => dataRef.current.handleEnterShareMode()}
-                            sx={multiLlmActionIconSx}
-                          >
-                            <ShareIcon />
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
+                      <MessageMoreActionsMenu
+                        isDarkMode={isDarkMode}
+                        compact
+                        isSpeaking={isSpeaking}
+                        showBranch={!shareMode}
+                        branchDisabled={Boolean(response.isStreaming)}
+                        onEdit={() => dataRef.current.handleEditMultiLlmColumn(message, respIndex)}
+                        onReadAloud={() =>
+                          dataRef.current.synthesizeSpeech(getMultiLlmColumnDisplayText(response))
+                        }
+                        onBranch={() => dataRef.current.handleBranchToNewChat(message, respIndex)}
+                        iconSx={multiLlmActionIconSx}
+                      />
                     </Box>
                   ) : null}
                 </Card>
               );
             })}
           </Box>
-        ) : showImageGenPlaceholder ? (
-          <ImageGenerationPlaceholder />
         ) : (
           <>
             {parsedMessage.reasoningContent ? (
@@ -1052,11 +1132,13 @@ const MessageCardComponent = ({
                 isDarkMode={isDarkMode}
               />
             ) : null}
-            <MessageRenderer
-              content={parsedMessage.visibleContent}
-              isStreaming={message.isStreaming && !isReasoningStreaming}
-              onSendMessage={dataRef.current.handleSendMessageFromRenderer}
-            />
+            {!showImageGenerationPlaceholder || parsedMessage.visibleContent.trim() ? (
+              <MessageRenderer
+                content={parsedMessage.visibleContent}
+                isStreaming={message.isStreaming && !isReasoningStreaming}
+                onSendMessage={dataRef.current.handleSendMessageFromRenderer}
+              />
+            ) : null}
           </>
         )}
       </Box>
@@ -1095,33 +1177,20 @@ const MessageCardComponent = ({
               maxWidth: interfaceSettings.leftAlignMessages ? '100%' : (isUser ? '75%' : '100%'),
               minWidth: '180px',
               width: interfaceSettings.leftAlignMessages ? '100%' : (isUser ? undefined : '100%'),
-              backgroundColor: showImageGenPlaceholder
-                ? 'transparent'
-                : isUser
-                  ? 'primary.main'
-                  : isDarkMode
-                    ? 'background.paper'
-                    : '#f8f9fa',
+              backgroundColor: isUser ? 'primary.main' : isDarkMode ? 'background.paper' : '#f8f9fa',
               color: isUser ? 'primary.contrastText' : isDarkMode ? 'text.primary' : '#333',
-              boxShadow: showImageGenPlaceholder
-                ? 'none'
-                : isDarkMode
-                  ? '0 2px 8px rgba(0,0,0,0.15)'
-                  : '0 2px 8px rgba(0,0,0,0.1)',
+              boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
             }}
           >
-            <CardContent
-              sx={{
-                p: showImageGenPlaceholder ? 0 : 1.2,
-                '&:last-child': { pb: showImageGenPlaceholder ? 0 : 1.2 },
-              }}
-            >
+            <CardContent sx={{ p: 1.2, '&:last-child': { pb: 1.2 } }}>
               {messageContent}
+              {followUpBlock}
             </CardContent>
           </Card>
         ) : (
           <Box sx={{ width: '100%', p: 1.2 }}>
             {messageContent}
+            {followUpBlock}
           </Box>
         )}
 
@@ -1144,12 +1213,13 @@ const MessageCardComponent = ({
                       const ci = message.currentResponseIndex ?? 0;
                       if (ci > 0) {
                         const ni = ci - 1;
+                        const nextAttachments = message.inlineAttachmentVariants?.[ni];
                         dataRef.current.updateMessage(
                           dataRef.current.currentChatId!, message.id,
                           message.alternativeResponses![ni],
                           undefined, undefined, message.alternativeResponses, ni,
                           undefined, undefined, undefined,
-                          message.inlineAttachmentVariants?.[ni] ?? message.inlineAttachments,
+                          nextAttachments?.length ? nextAttachments : undefined,
                         );
                       }
                     }}
@@ -1172,12 +1242,13 @@ const MessageCardComponent = ({
                       const ci = message.currentResponseIndex ?? 0;
                       if (ci < message.alternativeResponses!.length - 1) {
                         const ni = ci + 1;
+                        const nextAttachments = message.inlineAttachmentVariants?.[ni];
                         dataRef.current.updateMessage(
                           dataRef.current.currentChatId!, message.id,
                           message.alternativeResponses![ni],
                           undefined, undefined, message.alternativeResponses, ni,
                           undefined, undefined, undefined,
-                          message.inlineAttachmentVariants?.[ni] ?? message.inlineAttachments,
+                          nextAttachments?.length ? nextAttachments : undefined,
                         );
                       }
                     }}
@@ -1215,19 +1286,42 @@ const MessageCardComponent = ({
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Редактировать">
-            <IconButton
-              size="small"
-              onClick={() => dataRef.current.handleEditClick(message)}
-              className="message-edit-button"
-              data-theme={isDarkMode ? 'dark' : 'light'}
-              sx={{ opacity: 0.7, p: 0.5, borderRadius: '6px', minWidth: '28px', width: '28px', height: '28px',
-                '&:hover': { opacity: 1, '& .MuiSvgIcon-root': { color: 'primary.main' } },
-                '& .MuiSvgIcon-root': { fontSize: '18px !important', width: '18px !important', height: '18px !important' } }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
+          {!isUser && !message.isStreaming && (
+            <MessageFeedbackBar
+              feedback={message.feedback}
+              disabled={Boolean(message.isStreaming)}
+              isDarkMode={isDarkMode}
+              onLike={() =>
+                dataRef.current.handleMessageFeedback(message, { rating: 'like' })
+              }
+              onDislikeSubmit={({ tags, comment }: { tags: string[]; comment: string }) =>
+                dataRef.current.handleMessageFeedback(message, {
+                  rating: 'dislike',
+                  tags,
+                  comment,
+                })
+              }
+              onClear={() =>
+                dataRef.current.handleMessageFeedback(message, { rating: null })
+              }
+            />
+          )}
+
+          {!isUser && !shareMode && (
+            <Tooltip title="Поделиться">
+              <IconButton
+                size="small"
+                onClick={() => dataRef.current.handleEnterShareMode()}
+                className="message-share-button"
+                data-theme={isDarkMode ? 'dark' : 'light'}
+                sx={{ opacity: 0.7, p: 0.5, borderRadius: '6px', minWidth: '28px', width: '28px', height: '28px',
+                  '&:hover': { opacity: 1, '& .MuiSvgIcon-root': { color: 'primary.main' } },
+                  '& .MuiSvgIcon-root': { fontSize: '18px !important', width: '18px !important', height: '18px !important' } }}
+              >
+                <ShareIcon />
+              </IconButton>
+            </Tooltip>
+          )}
 
           {!isUser && (
             <Tooltip title="Перегенерировать">
@@ -1245,47 +1339,25 @@ const MessageCardComponent = ({
             </Tooltip>
           )}
 
-          <Tooltip title="Прочесть вслух">
-            <IconButton
-              size="small"
-              onClick={() => {
-                let textToSpeak = message.content;
-                if (!isUser && message.alternativeResponses && message.alternativeResponses.length > 0 && message.currentResponseIndex !== undefined) {
-                  const ci = message.currentResponseIndex;
-                  if (ci >= 0 && ci < message.alternativeResponses.length) textToSpeak = message.alternativeResponses[ci];
-                }
-                if (!isUser && message.multiLLMResponses && message.multiLLMResponses.length > 0) {
-                  textToSpeak = message.multiLLMResponses.filter(r => !r.error).map(r => r.content).join(' ');
-                }
-                dataRef.current.synthesizeSpeech(textToSpeak);
-              }}
-              className="message-speak-button"
-              data-theme={isDarkMode ? 'dark' : 'light'}
-              disabled={isSpeaking}
-              sx={{ opacity: 0.7, p: 0.5, borderRadius: '6px', minWidth: '28px', width: '28px', height: '28px',
-                '&:hover:not(:disabled)': { opacity: 1, '& .MuiSvgIcon-root': { color: 'primary.main' } },
-                '&:disabled': { opacity: 0.4 },
-                '& .MuiSvgIcon-root': { fontSize: '18px !important', width: '18px !important', height: '18px !important' } }}
-            >
-              <VolumeUpIcon />
-            </IconButton>
-          </Tooltip>
-
-          {!isUser && !shareMode && (
-            <Tooltip title="Поделиться">
-              <IconButton
-                size="small"
-                onClick={() => dataRef.current.handleEnterShareMode()}
-                className="message-share-button"
-                data-theme={isDarkMode ? 'dark' : 'light'}
-                sx={{ opacity: 0.7, p: 0.5, borderRadius: '6px', minWidth: '28px', width: '28px', height: '28px',
-                  '&:hover': { opacity: 1, '& .MuiSvgIcon-root': { color: 'primary.main' } },
-                  '& .MuiSvgIcon-root': { fontSize: '18px !important', width: '18px !important', height: '18px !important' } }}
-              >
-                <ShareIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+          <MessageMoreActionsMenu
+            isDarkMode={isDarkMode}
+            isSpeaking={isSpeaking}
+            showBranch={!isUser && !shareMode}
+            branchDisabled={Boolean(message.isStreaming)}
+            onEdit={() => dataRef.current.handleEditClick(message)}
+            onReadAloud={() => {
+              let textToSpeak = message.content;
+              if (!isUser && message.alternativeResponses && message.alternativeResponses.length > 0 && message.currentResponseIndex !== undefined) {
+                const ci = message.currentResponseIndex;
+                if (ci >= 0 && ci < message.alternativeResponses.length) textToSpeak = message.alternativeResponses[ci];
+              }
+              if (!isUser && message.multiLLMResponses && message.multiLLMResponses.length > 0) {
+                textToSpeak = message.multiLLMResponses.filter(r => !r.error).map(r => r.content).join(' ');
+              }
+              dataRef.current.synthesizeSpeech(textToSpeak);
+            }}
+            onBranch={() => dataRef.current.handleBranchToNewChat(message)}
+          />
         </Box>
         )}
       </Box>
@@ -1296,14 +1368,6 @@ const MessageCardComponent = ({
         src={lightboxSrc?.src || ''}
         name={lightboxSrc?.name || 'image'}
         onClose={() => setLightboxSrc(null)}
-        onEdit={() => {
-          const base = lightboxSrc?.editPrompt?.trim();
-          const text = base ? `Отредактируй изображение: ${base}` : 'Отредактируй изображение: ';
-          window.dispatchEvent(
-            new CustomEvent('astrachatPrefillChatInput', { detail: { text } }),
-          );
-          setLightboxSrc(null);
-        }}
       />
     </Box>
   );
@@ -1316,15 +1380,18 @@ const MessageCard = React.memo(MessageCardComponent, (prev, next) =>
   prev.isSelected === next.isSelected &&
   prev.isSpeaking === next.isSpeaking &&
   prev.isDarkMode === next.isDarkMode &&
+  prev.isLastChatMessage === next.isLastChatMessage &&
   prev.interfaceSettings === next.interfaceSettings,
 );
 
 // ================================
 
-export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sidebarHidden = false }: UnifiedChatPageProps) {
+export default function UnifiedChatPage({
+  isDarkMode,
+  sidebarOpen = true,
+  sidebarHidden = false,
+}: UnifiedChatPageProps) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const isCreationsView = location.pathname === '/creations';
   const theme = useTheme();
 
   // Состояние для правой панели
@@ -1556,6 +1623,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     setSpeaking, 
     setRecording, 
     updateMessage, 
+    patchMessageFields,
     getCurrentMessages, 
     getCurrentChat,
     createChat,
@@ -1563,6 +1631,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     updateChatTitle,
     getProjectById,
     setLoading,
+    branchChatAtMessage,
   } = useAppActions();
   const { sendMessage, regenerateResponse, regenerateMultiLlmSlot, isConnected, isConnecting, stopGeneration } =
     useSocket();
@@ -1584,6 +1653,28 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     () => (currentChat ? state.loadingChatIds.includes(currentChat.id) : false),
     [currentChat, state.loadingChatIds],
   );
+  const hasRunningMcpTools = useMemo(() => {
+    if (!currentChatLoading) return false;
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      if (message.role !== 'assistant') continue;
+      if (!message.mcpToolCalls?.length) return false;
+      return mergeMcpToolCalls(message.mcpToolCalls).some((exec) => exec.status === 'running');
+    }
+    return false;
+  }, [messages, currentChatLoading]);
+
+  const lastStreamingAssistant = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      if (message.role !== 'assistant') continue;
+      if (message.isStreaming || (message.multiLLMResponses?.some((r) => r.isStreaming) ?? false)) {
+        return message;
+      }
+      break;
+    }
+    return null;
+  }, [messages]);
 
   const dropdownPanelSx = getDropdownPanelSx(isDarkMode);
   const dropdownItemSx = useMemo(() => getDropdownItemSx(isDarkMode), [isDarkMode]);
@@ -1665,6 +1756,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
 
   // Стабильный обработчик для MessageRenderer (НЕ меняется при ререндерах!)
   const handleSendMessageFromRendererRef = useRef<((prompt: string) => void) | null>(null);
+  const clearFollowUpSuggestionsRef = useRef<() => void>(() => {});
   
   // Обновляем ref при изменении зависимостей, но НЕ создаем новую функцию
   useEffect(() => {
@@ -1673,6 +1765,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
         return;
       }
       if (currentChat && isConnected && !currentChatLoading) {
+        clearFollowUpSuggestionsRef.current();
         sendMessage(prompt, currentChat.id);
       }
     };
@@ -1690,27 +1783,20 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
   const { activeMcpTools } = useMcpStreamingTools();
 
   const mcpInputSuggestions = useMemo(() => {
-    const enabledServerIds = activeMcpServers.map((s) => s.id);
-    const suggestions = getAtlassianSuggestions(enabledServerIds);
-    const chips =
-      suggestions.length > 0 ? (
-        <McpSuggestionChips
-          suggestions={suggestions}
-          disabled={currentChatLoading || hasActiveChatStreaming}
-          onSelect={(text) => {
-            setInputMessage((prev) => (prev.trim() ? `${prev.trim()}\n${text}` : text));
-            inputRef.current?.focus();
-          }}
-        />
-      ) : null;
-    if (!activeMcpTools.length && !chips) return null;
-    return (
-      <>
-        <McpLiveToolsIndicator tools={activeMcpTools} />
-        {chips}
-      </>
-    );
-  }, [activeMcpServers, activeMcpTools, currentChatLoading, hasActiveChatStreaming]);
+    if (!activeMcpTools.length) return null;
+    return <McpLiveToolsIndicator tools={activeMcpTools} />;
+  }, [activeMcpTools]);
+
+  const enabledMcpServerIds = useMemo(
+    () => activeMcpServers.map((s) => s.id),
+    [activeMcpServers],
+  );
+
+  const chatInputSuggestionsCatalog = useMemo(
+    () => getChatInputSuggestions(enabledMcpServerIds, useKbRag),
+    [enabledMcpServerIds, useKbRag],
+  );
+
   const [availableModels, setAvailableModels] = useState<
     Array<{
       name: string;
@@ -1732,7 +1818,76 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     [modelWindows],
   );
   const multiLlmInputBlocked = isMultiLlmMode && !multiLlmHasSelection;
-  const chatAwaitingTokens = currentChatLoading && !hasActiveChatStreaming;
+  const multiLlmSelectedPaths = useMemo(
+    () => modelWindows.map((w) => w.selectedModel).filter(Boolean),
+    [modelWindows],
+  );
+  const chatContextUsage = useChatContextUsage({
+    messages,
+    draftText: inputMessage,
+    inlineAttachments,
+    availableModels,
+    configuredContextSize: state.modelSettings.context_size,
+    configuredOutputTokens: state.modelSettings.output_tokens,
+    loadedModelCtx: state.currentModel?.n_ctx,
+    isMultiLlmMode,
+    multiLlmModelPaths: multiLlmSelectedPaths,
+    chatId: state.currentChatId,
+    useKbRag,
+    projectInstructions: project?.instructions ?? null,
+  });
+  const chatContextModelLabel = useMemo(() => {
+    if (isMultiLlmMode && multiLlmSelectedPaths.length > 0) {
+      if (multiLlmSelectedPaths.length === 1) {
+        const row = availableModels.find((m) => m.path === multiLlmSelectedPaths[0]);
+        return row?.display_name || row?.name || multiLlmSelectedPaths[0];
+      }
+      return `${multiLlmSelectedPaths.length} модели (мин. лимит)`;
+    }
+    const path = localStorage.getItem(LAST_SELECTED_MODEL_PATH_STORAGE_KEY) || '';
+    const row = availableModels.find((m) => m.path === path);
+    return row?.display_name || row?.name || (path ? path.split('/').pop() : null);
+  }, [isMultiLlmMode, multiLlmSelectedPaths, availableModels]);
+  const chatContextCounter = useMemo(
+    () => (
+      <ChatContextUsagePopover
+        usage={chatContextUsage}
+        isDarkMode={isDarkMode}
+        modelLabel={chatContextModelLabel}
+      />
+    ),
+    [chatContextUsage, isDarkMode, chatContextModelLabel],
+  );
+  const chatAwaitingTokens = useMemo(() => {
+    if (!currentChatLoading || hasRunningMcpTools) return false;
+    if (!lastStreamingAssistant) return true;
+    const parsed = extractReasoningBlock(lastStreamingAssistant.content || '', true);
+    if (parsed.reasoningContent?.trim()) return false;
+    if (parsed.visibleContent.trim()) return false;
+    return true;
+  }, [currentChatLoading, hasRunningMcpTools, lastStreamingAssistant]);
+
+  const suggestionsDisabled =
+    currentChatLoading || hasActiveChatStreaming || multiLlmInputBlocked || chatAwaitingTokens;
+
+  const renderChatInputSuggestions = (maxWidth: string | number) => {
+    if (!interfaceSettings.followUpAutoGenerate) return null;
+    return (
+    <ChatInputSuggestions
+      suggestions={chatInputSuggestionsCatalog}
+      inputValue={inputMessage}
+      disabled={suggestionsDisabled}
+      isDarkMode={isDarkMode}
+      maxWidth={maxWidth}
+      contentInset={suggestionsContentInset}
+      onSelect={(text) => {
+        setInputMessage(text);
+        inputRef.current?.focus();
+      }}
+    />
+    );
+  };
+
   /** Плейсхолдер поля ввода: без dev-текста про порт 8000; при активной генерации — обычная подсказка (кнопка стоп и так видна). */
   const chatMainPlaceholder = useMemo(() => {
     if (!isConnected) {
@@ -1861,6 +2016,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     const savedEnableNotification = localStorage.getItem('enable_notification');
     const savedChatInputStyle = localStorage.getItem('chat_input_style');
     const savedChatAutoscrollStreaming = localStorage.getItem('chat_autoscroll_streaming');
+    const followUpSettings = loadFollowUpSettings();
     return {
       autoGenerateTitles: savedAutoTitle !== null ? savedAutoTitle === 'true' : true,
       largeTextAsFile: savedLargeTextAsFile !== null ? savedLargeTextAsFile === 'true' : false,
@@ -1873,8 +2029,70 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
       autoScrollWhileStreaming:
         savedChatAutoscrollStreaming !== null ? savedChatAutoscrollStreaming === 'true' : true,
       chatInputStyle: (savedChatInputStyle as 'compact' | 'classic') || 'compact',
+      followUpAutoGenerate: followUpSettings.followUpAutoGenerate,
+      followUpShowScope: followUpSettings.followUpShowScope,
+      followUpClickAction: followUpSettings.followUpClickAction,
     };
   });
+
+  const handleFollowUpSelectRef = useRef<((content: string) => void) | null>(null);
+  useEffect(() => {
+    handleFollowUpSelectRef.current = (content: string) => {
+      if (interfaceSettings.followUpClickAction === 'send') {
+        handleSendMessageFromRendererRef.current?.(content);
+        return;
+      }
+      setInputMessage(content);
+      inputRef.current?.focus();
+    };
+  }, [interfaceSettings.followUpClickAction]);
+
+  const handleFollowUpSelect = useCallback((content: string) => {
+    handleFollowUpSelectRef.current?.(content);
+  }, []);
+
+  useFollowUpSuggestions({
+    chatId: currentChat?.id,
+    messages,
+    enabled: interfaceSettings.followUpAutoGenerate,
+    showScope: interfaceSettings.followUpShowScope,
+    patchMessageFields,
+  });
+
+  const clearFollowUpSuggestions = useCallback(() => {
+    if (!currentChat?.id) return;
+    messages.forEach((m) => {
+      if (m.role === 'assistant' && m.followUpSuggestions?.length) {
+        patchMessageFields(currentChat.id, m.id, { followUpSuggestions: undefined });
+      }
+    });
+  }, [currentChat?.id, messages, patchMessageFields]);
+
+  useEffect(() => {
+    clearFollowUpSuggestionsRef.current = clearFollowUpSuggestions;
+  }, [clearFollowUpSuggestions]);
+
+  const suggestionsContentInset = useMemo(() => {
+    const mcpLabel =
+      activeMcpServers.length === 1
+        ? activeMcpServers[0].display_name
+        : activeMcpServers.length > 1
+          ? `${activeMcpServers.length} MCP`
+          : '';
+    const clusterWidth = estimateLibraryClusterWidthPx(
+      useKbRag,
+      orchestratorAgentsAnyActive || Boolean(myAgentSelection?.name),
+      activeMcpServers.length > 0,
+      mcpLabel,
+    );
+    return getToolsButtonInsetSp(interfaceSettings.chatInputStyle, clusterWidth);
+  }, [
+    useKbRag,
+    orchestratorAgentsAnyActive,
+    myAgentSelection?.name,
+    activeMcpServers,
+    interfaceSettings.chatInputStyle,
+  ]);
 
   // Слушаем изменения настроек интерфейса в localStorage
   useEffect(() => {
@@ -1889,6 +2107,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
       const savedEnableNotification = localStorage.getItem('enable_notification');
       const savedChatInputStyle = localStorage.getItem('chat_input_style');
       const savedChatAutoscrollStreaming = localStorage.getItem('chat_autoscroll_streaming');
+      const followUpSettings = loadFollowUpSettings();
       setInterfaceSettings({
         autoGenerateTitles: savedAutoTitle !== null ? savedAutoTitle === 'true' : true,
         largeTextAsFile: savedLargeTextAsFile !== null ? savedLargeTextAsFile === 'true' : false,
@@ -1901,6 +2120,9 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
         autoScrollWhileStreaming:
           savedChatAutoscrollStreaming !== null ? savedChatAutoscrollStreaming === 'true' : true,
         chatInputStyle: (savedChatInputStyle as 'compact' | 'classic') || 'compact',
+        followUpAutoGenerate: followUpSettings.followUpAutoGenerate,
+        followUpShowScope: followUpSettings.followUpShowScope,
+        followUpClickAction: followUpSettings.followUpClickAction,
       });
     };
 
@@ -1966,20 +2188,35 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     prevMessagesLengthRef.current = len;
   }, [messages.length]);
 
-  // Автоскролл к последнему сообщению — только когда пользователь у дна
+  // Автоскролл к последнему сообщению — только когда пользователь у дна.
+  // Не реагируем на follow-up подсказки, чтобы поле ввода не «прыгало».
+  const autoscrollTrigger = useMemo(
+    () =>
+      messages
+        .map((m) => {
+          const streaming = m.isStreaming ? 1 : 0;
+          const len = (m.content || '').length;
+          const multi =
+            m.multiLLMResponses
+              ?.map((r) => `${r.isStreaming ? 1 : 0}:${(r.content || '').length}`)
+              .join(',') ?? '';
+          return `${m.id}|${streaming}|${len}|${multi}`;
+        })
+        .join(';;'),
+    [messages],
+  );
+
   useEffect(() => {
     if (!interfaceSettings.autoScrollWhileStreaming) return;
     if (Date.now() < autoScrollPauseUntilRef.current) return;
     if (!isAtBottomRef.current) return;
     const container = messagesContainerRef.current;
-    const end = messagesEndRef.current;
-    if (!container || !end) return;
+    if (!container) return;
     isProgrammaticScrollRef.current = true;
-    end.scrollIntoView({ behavior: 'smooth' });
-    // Снимаем флаг программного скролла после завершения анимации
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     const timer = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 600);
     return () => clearTimeout(timer);
-  }, [messages, interfaceSettings.autoScrollWhileStreaming]);
+  }, [autoscrollTrigger, interfaceSettings.autoScrollWhileStreaming]);
 
   // Автоматический фокус на поле ввода при загрузке
   useEffect(() => {
@@ -1990,17 +2227,6 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     }, 300);
     
     return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const onPrefill = (event: Event) => {
-      const text = (event as CustomEvent<{ text?: string }>).detail?.text;
-      if (!text) return;
-      setInputMessage(text);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    };
-    window.addEventListener('astrachatPrefillChatInput', onPrefill);
-    return () => window.removeEventListener('astrachatPrefillChatInput', onPrefill);
   }, []);
 
   // Автоматический фокус на поле ввода при переключении чатов
@@ -2308,6 +2534,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
           }
         : undefined;
       setTimeout(() => {
+        clearFollowUpSuggestions();
         sendMessage(messageText, newChatId, true, undefined, undefined, inlinePayloadNew);
         setInlineAttachments([]);
         inputRef.current?.focus();
@@ -2329,6 +2556,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
           })),
         }
       : undefined;
+    clearFollowUpSuggestions();
     sendMessage(inputMessage.trim(), currentChat.id, true, undefined, undefined, inlinePayload);
     setInlineAttachments([]);
     setInputMessage('');
@@ -2526,30 +2754,17 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     
     // Добавляем пустое место для нового ответа (будет заполнено при генерации)
     const updatedAlternatives = [...existingAlternatives, ''];
-
-    const isImageMessage = Boolean(
-      message.inlineAttachments?.some((a) => a.contentType === 'image' && a.preview),
-    );
-    let existingVariants = message.inlineAttachmentVariants;
-    if (!existingVariants?.length && message.inlineAttachments?.length) {
-      existingVariants = [message.inlineAttachments];
-    }
     
     // Обновляем сообщение с альтернативными ответами и новым индексом
+    // Не обнуляем content, оставляем текущий
     updateMessage(
       currentChat.id,
       message.id,
-      currentContent,
-      true,
-      undefined,
+      currentContent, // Оставляем текущий контент, не обнуляем
+      true, // isStreaming - начинаем стриминг
+      undefined, // multiLLMResponses
       updatedAlternatives,
-      newIndex,
-      undefined,
-      undefined,
-      undefined,
-      message.inlineAttachments,
-      isImageMessage,
-      existingVariants,
+      newIndex // Новый индекс для нового ответа
     );
 
     // Вызываем перегенерацию без создания нового сообщения пользователя
@@ -2564,6 +2779,111 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     setEditText(message.content);
     setEditDialogOpen(true);
   };
+
+  const handleMessageFeedback = useCallback(
+    async (
+      message: Message,
+      payload: {
+        rating: 'like' | 'dislike' | null;
+        tags?: string[];
+        comment?: string;
+        multiLlmSlotIndex?: number;
+      },
+    ): Promise<void> => {
+      if (!currentChat?.id || message.role !== 'assistant') return;
+
+      const authToken = token || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!authToken) {
+        showNotification('error', 'Нужна авторизация, чтобы отправить отзыв');
+        return;
+      }
+
+      const body: Record<string, unknown> = {
+        rating: payload.rating,
+        tags: payload.rating === 'dislike' ? payload.tags || [] : [],
+        comment: payload.rating === 'dislike' ? payload.comment || '' : '',
+      };
+      if (typeof payload.multiLlmSlotIndex === 'number') {
+        body.multi_llm_slot_index = payload.multiLlmSlotIndex;
+      }
+
+      try {
+        const response = await fetch(
+          getApiUrl(`${API_ENDPOINTS.MESSAGE_FEEDBACK}/${currentChat.id}/${message.id}/feedback`),
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          },
+        );
+
+        if (!response.ok) {
+          let detail = 'Не удалось сохранить отзыв';
+          try {
+            const errData = await response.json();
+            if (errData?.detail) detail = String(errData.detail);
+          } catch {
+            /* ignore */
+          }
+          showNotification('error', detail);
+          return;
+        }
+
+        const resData = await response.json();
+        const saved = resData?.feedback as
+          | { rating?: string; tags?: string[]; comment?: string; updated_at?: string }
+          | null
+          | undefined;
+
+        const nextFeedback: MessageFeedback | null =
+          saved && (saved.rating === 'like' || saved.rating === 'dislike')
+            ? {
+                rating: saved.rating,
+                tags: Array.isArray(saved.tags) ? saved.tags.map(String) : [],
+                comment: typeof saved.comment === 'string' ? saved.comment : undefined,
+                updatedAt: typeof saved.updated_at === 'string' ? saved.updated_at : undefined,
+              }
+            : null;
+
+        if (typeof payload.multiLlmSlotIndex === 'number' && message.multiLLMResponses) {
+          const idx = payload.multiLlmSlotIndex;
+          const newCols = message.multiLLMResponses.map((slot, i) =>
+            i === idx ? { ...slot, feedback: nextFeedback } : slot,
+          );
+          updateMessage(currentChat.id, message.id, undefined, false, newCols);
+        } else {
+          updateMessage(
+            currentChat.id,
+            message.id,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            nextFeedback,
+          );
+        }
+
+        if (payload.rating === 'like') {
+          showNotification('success', 'Спасибо! Отметили как хороший ответ');
+        } else if (payload.rating === 'dislike') {
+          showNotification('success', 'Спасибо за отзыв — учтём в следующих ответах');
+        }
+      } catch {
+        showNotification('error', 'Не удалось сохранить отзыв');
+      }
+    },
+    [currentChat?.id, token, showNotification, updateMessage],
+  );
 
   // Функция для сохранения отредактированного сообщения
   const handleSaveEdit = async (): Promise<void> => {
@@ -3157,6 +3477,33 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
     setSelectedMessages(new Set());
   };
 
+  const handleBranchToNewChat = useCallback(
+    async (message: Message, multiLlmSlotIndex?: number): Promise<void> => {
+      if (!currentChat?.id) return;
+      if (message.role !== 'assistant') return;
+      if (message.isStreaming) {
+        showNotification('info', 'Дождитесь окончания генерации ответа');
+        return;
+      }
+      if (
+        multiLlmSlotIndex !== undefined &&
+        message.multiLLMResponses?.[multiLlmSlotIndex]?.isStreaming
+      ) {
+        showNotification('info', 'Дождитесь окончания генерации ответа');
+        return;
+      }
+
+      const newChatId = await branchChatAtMessage(currentChat.id, message.id, { multiLlmSlotIndex });
+      if (newChatId) {
+        showNotification('success', 'Создана ветка в новом чате');
+        navigate('/');
+      } else {
+        showNotification('error', 'Не удалось создать ветку');
+      }
+    },
+    [branchChatAtMessage, currentChat?.id, navigate, showNotification],
+  );
+
   const handleExitShareMode = () => {
     setShareMode(false);
     setSelectedMessages(new Set());
@@ -3322,13 +3669,16 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
   //  но его onClick-обработчики через dataRef.current всегда получают свежие функции)
   messageCardDataRef.current = {
     handleSendMessageFromRenderer,
+    handleFollowUpSelect,
     handleCopyMessage,
     handleEditClick,
     handleRegenerate,
     handleEditMultiLlmColumn,
     handleRegenerateMultiLlmColumn,
+    handleMessageFeedback,
     synthesizeSpeech,
     handleEnterShareMode,
+    handleBranchToNewChat,
     handleToggleMessage,
     updateMessage,
     formatTimestamp,
@@ -3598,7 +3948,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
           overflow: 'hidden',
           marginRight: rightSidebarHidden ? 0 : (rightSidebarOpen ? 0 : '-64px'),
           transition: 'margin-right 0.3s ease',
-          pt: isCreationsView ? 0 : 8,
+          pt: 8,
           backgroundColor: workZoneBgColor,
           ...(workZoneMode === 'custom' && workZoneCustomImage
             ? {
@@ -3614,30 +3964,12 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
       >
       {workZoneMode === 'starry' ? <WorkZoneStarrySky isDarkMode={isDarkMode} /> : null}
       {workZoneMode === 'snowfall' ? <WorkZoneSnowfall isDarkMode={isDarkMode} /> : null}
-      {isCreationsView ? (
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            overflow: 'auto',
-            position: 'relative',
-            zIndex: 1,
-            boxSizing: 'border-box',
-            py: 3,
-            pl: !sidebarHidden && !sidebarOpen ? { xs: 10, md: 10 } : { xs: 2, md: 4 },
-            pr: !rightSidebarHidden && !rightSidebarOpen ? { xs: 10, md: 10 } : { xs: 2, md: 4 },
-          }}
-        >
-          <CreationsGallery isDarkMode={isDarkMode} />
-        </Box>
-      ) : (
-      <>
       {/* Заголовок с информацией о проекте и модели */}
       {currentChat && project && (
         <Box sx={{ 
           position: 'absolute',
           top: 16,
-          left: sidebarOpen ? 16 : 80,
+          left: sidebarHidden ? 16 : sidebarOpen ? 16 : 80,
           zIndex: 1200,
           transition: 'left 0.3s ease',
           display: 'flex',
@@ -3711,7 +4043,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
         <Box sx={{ 
           position: 'absolute',
           top: 16,
-          left: sidebarOpen ? 16 : 80,
+          left: sidebarHidden ? 16 : sidebarOpen ? 16 : 80,
           zIndex: 1200,
           transition: 'left 0.3s ease',
           display: 'flex',
@@ -3774,7 +4106,10 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
                  p: 0,
                }
              : {
-                 minHeight: '60vh',
+                 flex: 1,
+                 minHeight: 0,
+                 overflowY: 'auto',
+                 overflowX: 'hidden',
                  justifyContent: 'flex-start',
                  py: 4,
                }),
@@ -3830,6 +4165,22 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
               px: interfaceSettings.widescreenMode ? 4 : 2,
             }}>
               {messages.map((message, index) => {
+                const isEmptyAssistantPlaceholder =
+                  message.role === 'assistant' &&
+                  !message.content.trim() &&
+                  !message.mcpToolCalls?.length &&
+                  !message.multiLLMResponses?.length &&
+                  !message.documentSearch;
+                const parsedAssistant = isEmptyAssistantPlaceholder
+                  ? extractReasoningBlock(message.content || '', message.isStreaming)
+                  : null;
+                if (
+                  isEmptyAssistantPlaceholder &&
+                  currentChatLoading &&
+                  !parsedAssistant?.reasoningContent?.trim()
+                ) {
+                  return null;
+                }
                 const isUserMsg = message.role === 'user';
                 const isPairStart = isUserMsg && index < messages.length - 1 && messages[index + 1].role === 'assistant';
                 const isSelected = isPairStart &&
@@ -3847,6 +4198,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
                     shareMode={shareMode}
                     isSpeaking={isSpeaking}
                     isDarkMode={isDarkMode}
+                    isLastChatMessage={index === messages.length - 1}
                     interfaceSettings={interfaceSettings}
                     username={user?.username}
                     dataRef={messageCardDataRef}
@@ -4025,6 +4377,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
            className="chat-input-area"
            data-theme={isDarkMode ? 'dark' : 'light'}
                        sx={{
+              flexShrink: 0,
               position: 'relative',
               zIndex: workZoneAnimated ? 2 : undefined,
               borderColor: isDragging ? 'primary.main' : 'divider',
@@ -4119,7 +4472,11 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
                            libraryBadge={libraryInputBadge}
                            inputSuggestions={mcpInputSuggestions}
                            extraActions={multiLlmSettingsExtraAction}
+                           contextCounter={chatContextCounter}
                          />
+                         {renderChatInputSuggestions(
+                           interfaceSettings.widescreenMode ? '100%' : '800px',
+                         )}
                        </Box>
                      ) : null}
 
@@ -4168,10 +4525,10 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
                libraryBadge={libraryInputBadge}
                inputSuggestions={mcpInputSuggestions}
                extraActions={multiLlmSettingsExtraAction}
+               contextCounter={chatContextCounter}
              />
            </>
            ) : null}
-         </Box>
 
              {/* Диалоги */}
        <VoiceChatDialog
@@ -4513,8 +4870,6 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
            Текст скопирован в буфер обмена
          </Alert>
        </Snackbar>
-      </>
-      )}
       </Box>
 
       {/* Правый сайдбар: кнопки действий → по клику «Конструктор агента» открывается панель */}
@@ -4981,7 +5336,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
           sx={{
             position: 'fixed',
             bottom: 0,
-            left: sidebarOpen ? 240 : 64,
+            left: sidebarHidden ? 0 : sidebarOpen ? 240 : 64,
             right: 0,
             zIndex: 1200,
             borderRadius: 0,
@@ -5061,6 +5416,7 @@ export default function UnifiedChatPage({ isDarkMode, sidebarOpen = true, sideba
         isDarkMode={isDarkMode}
         selectedCount={selectedMessages.size}
       />
+      </Box>
     </Box>
   );
 }

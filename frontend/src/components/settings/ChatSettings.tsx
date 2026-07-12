@@ -15,6 +15,7 @@ import {
   ListItem,
   ListItemText,
   Popover,
+  Switch,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -26,14 +27,19 @@ import {
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import {
-  DROPDOWN_TRIGGER_BUTTON_SX,
-  DROPDOWN_CHEVRON_SX,
   getDropdownPopoverPaperSx,
   getDropdownItemSx,
-  DROPDOWN_ITEM_HOVER_BG,
+  getDropdownTriggerButtonSx,
+  getDropdownTriggerTextSx,
+  getDropdownChevronSx,
+  getDropdownItemStateSx,
 } from '../../constants/menuStyles';
 import { useAppContext, useAppActions } from '../../contexts/AppContext';
 import ManageSharesDialog from '../ManageSharesDialog';
+import {
+  loadFollowUpSettings,
+  saveFollowUpAutoGenerate,
+} from '../../chat/followUpSettings';
 
 type FontSize = 'small' | 'medium' | 'large';
 
@@ -43,6 +49,9 @@ interface ChatSettingsProps {
 
 export default function ChatSettings({ isDarkMode = false }: ChatSettingsProps = {}) {
   const dropdownItemSx = useMemo(() => getDropdownItemSx(isDarkMode), [isDarkMode]);
+  const dropdownTriggerSx = useMemo(() => getDropdownTriggerButtonSx(isDarkMode), [isDarkMode]);
+  const dropdownTriggerTextSx = useMemo(() => getDropdownTriggerTextSx(isDarkMode), [isDarkMode]);
+  const dropdownChevronSx = useMemo(() => getDropdownChevronSx(isDarkMode), [isDarkMode]);
   const { state } = useAppContext();
   const { deleteAllChats, exportChats, importChats, archiveAllChats, showNotification } = useAppActions();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -51,6 +60,25 @@ export default function ChatSettings({ isDarkMode = false }: ChatSettingsProps =
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fontSize, setFontSize] = useState<FontSize>('medium');
   const [fontPopoverAnchor, setFontPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [chatSuggestionsEnabled, setChatSuggestionsEnabled] = useState(
+    () => loadFollowUpSettings().followUpAutoGenerate,
+  );
+
+  useEffect(() => {
+    const syncSuggestionsSetting = () => {
+      setChatSuggestionsEnabled(loadFollowUpSettings().followUpAutoGenerate);
+    };
+    syncSuggestionsSetting();
+    window.addEventListener('interfaceSettingsChanged', syncSuggestionsSetting);
+    return () => window.removeEventListener('interfaceSettingsChanged', syncSuggestionsSetting);
+  }, []);
+
+  const handleChatSuggestionsToggle = (enabled: boolean) => {
+    setChatSuggestionsEnabled(enabled);
+    saveFollowUpAutoGenerate(enabled);
+    window.dispatchEvent(new Event('interfaceSettingsChanged'));
+    showNotification('success', enabled ? 'Подсказки в чате включены' : 'Подсказки в чате отключены');
+  };
 
   // Загружаем размер шрифта из localStorage
   useEffect(() => {
@@ -141,6 +169,35 @@ export default function ChatSettings({ isDarkMode = false }: ChatSettingsProps =
       <Card>
         <CardContent>
           <List sx={{ p: 0 }}>
+            <ListItem
+              sx={{
+                px: 0,
+                py: 2,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <ListItemText
+                primary="Подсказки в чате"
+                secondary="Динамические подсказки под ответом модели и «Предложено» в новом чате"
+                primaryTypographyProps={{
+                  variant: 'body1',
+                  fontWeight: 500,
+                }}
+                secondaryTypographyProps={{
+                  variant: 'body2',
+                  sx: { mt: 0.5 },
+                }}
+              />
+              <Switch
+                checked={chatSuggestionsEnabled}
+                onChange={(e) => handleChatSuggestionsToggle(e.target.checked)}
+              />
+            </ListItem>
+
+            <Divider />
+
             {/* Размер шрифта */}
             <ListItem
               sx={{
@@ -159,11 +216,11 @@ export default function ChatSettings({ isDarkMode = false }: ChatSettingsProps =
                 }}
               />
               <Box sx={{ minWidth: 180 }}>
-                <Box onClick={(e) => setFontPopoverAnchor(e.currentTarget)} sx={DROPDOWN_TRIGGER_BUTTON_SX}>
-                  <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '0.875rem' }}>
+                <Box onClick={(e) => setFontPopoverAnchor(e.currentTarget)} sx={dropdownTriggerSx}>
+                  <Typography sx={dropdownTriggerTextSx}>
                     {getFontSizeLabel(fontSize)}
                   </Typography>
-                  <ExpandMoreIcon sx={{ ...DROPDOWN_CHEVRON_SX, transform: fontPopoverAnchor ? 'rotate(180deg)' : 'none' }} />
+                  <ExpandMoreIcon sx={{ ...dropdownChevronSx, transform: fontPopoverAnchor ? 'rotate(180deg)' : 'none' }} />
                 </Box>
                 <Popover
                   open={Boolean(fontPopoverAnchor)}
@@ -171,7 +228,7 @@ export default function ChatSettings({ isDarkMode = false }: ChatSettingsProps =
                   onClose={() => setFontPopoverAnchor(null)}
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                   transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                  slotProps={{ paper: { sx: getDropdownPopoverPaperSx(fontPopoverAnchor) } }}
+                  slotProps={{ paper: { sx: getDropdownPopoverPaperSx(fontPopoverAnchor, isDarkMode) } }}
                 >
                   <Box sx={{ py: 0.5 }}>
                     {(['small', 'medium', 'large'] as const).map((size) => (
@@ -180,9 +237,7 @@ export default function ChatSettings({ isDarkMode = false }: ChatSettingsProps =
                         onClick={() => { setFontSize(size); localStorage.setItem('chat-font-size', size); showNotification('success', 'Размер шрифта изменен'); setFontPopoverAnchor(null); }}
                         sx={{
                           ...dropdownItemSx,
-                          color: fontSize === size ? 'white' : 'rgba(255,255,255,0.9)',
-                          fontWeight: fontSize === size ? 600 : 400,
-                          bgcolor: fontSize === size ? DROPDOWN_ITEM_HOVER_BG : 'transparent',
+                          ...getDropdownItemStateSx(isDarkMode, fontSize === size),
                         }}
                       >
                         {getFontSizeLabel(size)}

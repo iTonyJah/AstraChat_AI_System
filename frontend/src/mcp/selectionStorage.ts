@@ -2,6 +2,8 @@
 
 export const MCP_SELECTION_CHANGED_EVENT = 'astrachatMcpSelectionChanged';
 
+const GLOBAL_MCP_STORAGE_KEY = 'global:mcp_tool_ids';
+
 export function mcpServerToolId(serverId: string): string {
   return `server:mcp:${serverId}`;
 }
@@ -17,16 +19,33 @@ function storageKey(chatId: string): string {
   return `chat:${chatId}:mcp_tool_ids`;
 }
 
-export function getMcpToolIdsForChat(chatId: string): string[] {
-  if (!chatId) return [];
+function readToolIdsFromStorage(key: string): string[] {
   try {
-    const raw = localStorage.getItem(storageKey(chatId));
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];
   } catch {
     return [];
   }
+}
+
+export function getGlobalMcpToolIds(): string[] {
+  return readToolIdsFromStorage(GLOBAL_MCP_STORAGE_KEY);
+}
+
+export function setGlobalMcpToolIds(toolIds: string[]): void {
+  localStorage.setItem(GLOBAL_MCP_STORAGE_KEY, JSON.stringify(toolIds));
+}
+
+export function getMcpToolIdsForChat(chatId: string): string[] {
+  if (!chatId) return [];
+  const key = storageKey(chatId);
+  if (localStorage.getItem(key) !== null) {
+    return readToolIdsFromStorage(key);
+  }
+  // Новый чат без явного выбора — MCP выключен, пока пользователь не включит в UI
+  return [];
 }
 
 export function setMcpToolIdsForChat(chatId: string, toolIds: string[]): void {

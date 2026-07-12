@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import CodeSelectionMenu from './CodeSelectionMenu';
 
 // Monaco загружается как статические файлы (не через webpack-бандл).
-// Файлы копируются из node_modules в /app/public/monaco при docker-сборке.
+// Файлы копируются в public/monaco через scripts/copy-monaco-assets.js (prestart/prebuild).
 loader.config({
   paths: { vs: `${process.env.PUBLIC_URL || ''}/monaco/vs` },
 });
@@ -38,6 +38,19 @@ const getFontSizeValue = (size: FontSize): string => {
       return '1rem';
   }
 };
+
+/** Markdown-заголовки: чуть крупнее body, без MUI h1–h4 (там 2–3rem). */
+const MARKDOWN_HEADING_SCALE: Record<string, number> = {
+  '1': 1.35,
+  '2': 1.2,
+  '3': 1.1,
+  '4': 1.05,
+};
+
+function markdownHeadingFontSize(level: string, baseFontSize: string): string {
+  const scale = MARKDOWN_HEADING_SCALE[level] ?? 1.1;
+  return `calc(${baseFontSize} * ${scale})`;
+}
 
 /**
  * LLM часто рвёт пары <em></em> между строками списка: на одной строке parseInlineMarkdown не видит
@@ -1069,6 +1082,11 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
     text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
 
+    // Списки — ДО курсива через *, иначе маркеры «* пункт» на соседних строках
+    // схлопываются в один <em> и только последний «- пункт» остаётся в <ul>.
+    text = text.replace(/^[\s]*(\d+)\.\s+(.+)$/gim, '<li data-list-type="ordered" data-list-number="$1">$2</li>');
+    text = text.replace(/^[\s]*[-*+]\s+(.+)$/gim, '<li data-list-type="unordered">$1</li>');
+
     // Обрабатываем вложенные форматирования правильно
     // Сначала обрабатываем самые внешние теги (жирный), потом внутренние (курсив)
     // Используем жадное совпадение для внешних тегов
@@ -1086,8 +1104,8 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
       return `<strong>${processed}</strong>`;
     });
     
-    // Обрабатываем оставшийся курсив (который не внутри жирного)
-    text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // Обрабатываем оставшийся курсив (который не внутри жирного); не через перенос строки
+    text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
     // Применяем "_" как курсив только на границах слова,
     // чтобы не ломать snake_case (например, df_date).
     text = text.replace(/(^|[^\w])_([^_\n]+)_(?=[^\w]|$)/g, '$1<em>$2</em>');
@@ -1117,12 +1135,6 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
 
     // Обрабатываем инлайн код
     text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Обрабатываем списки - различаем маркированные и нумерованные
-    // Сначала нумерованные (чтобы не конфликтовали с маркированными)
-    text = text.replace(/^[\s]*(\d+)\.\s+(.+)$/gim, '<li data-list-type="ordered" data-list-number="$1">$2</li>');
-    // Затем маркированные
-    text = text.replace(/^[\s]*[-*+]\s+(.+)$/gim, '<li data-list-type="unordered">$1</li>');
 
     // Обрабатываем цитаты
     text = text.replace(/^>\s+(.+)$/gim, '<blockquote>$1</blockquote>');
@@ -1156,16 +1168,19 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
       }
 
       if (line.startsWith('<h1>') || line.startsWith('<h2>') || line.startsWith('<h3>') || line.startsWith('<h4>')) {
-        const level = line.match(/<h(\d)>/)?.[1] || '1';
+        const level = line.match(/<h(\d)>/)?.[1] || '3';
         const content = line.replace(/<h\d>(.*?)<\/h\d>/, '$1');
         return (
           <Typography
             key={`${index}-${lineIndex}`}
-            variant={`h${level}` as any}
+            component={`h${level}` as 'h1' | 'h2' | 'h3' | 'h4'}
+            variant="body1"
             sx={{
-              mt: level === '1' ? 3 : level === '2' ? 2.5 : level === '3' ? 2 : 1.5,
-              mb: 1,
-              fontWeight: 'bold',
+              mt: level === '1' ? 2 : level === '2' ? 1.75 : 1.25,
+              mb: 0.5,
+              fontWeight: 600,
+              fontSize: markdownHeadingFontSize(level, fontSizeValue),
+              lineHeight: 1.35,
               color: 'inherit',
             }}
           >
@@ -1200,6 +1215,7 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
           key: `${index}-${lineIndex}`,
           component: 'li',
           sx: {
+            display: 'list-item',
             ml: 2,
             mb: 0.5,
             '&::marker': {
@@ -1230,6 +1246,7 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
                 sx={{
                   margin: '8px 0',
                   paddingLeft: '20px',
+                  listStyleType: listType === 'ordered' ? 'decimal' : 'disc',
                 }}
               >
                 {listItems}
@@ -1264,6 +1281,7 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
             sx={{
               margin: '8px 0',
               paddingLeft: '20px',
+              listStyleType: listType === 'ordered' ? 'decimal' : 'disc',
             }}
           >
             {listItems}
@@ -1341,6 +1359,7 @@ const MessageRendererComponent: React.FC<MessageRendererProps> = ({ content, isS
            sx={{
              margin: '8px 0',
              paddingLeft: '20px',
+             listStyleType: listType === 'ordered' ? 'decimal' : 'disc',
            }}
          >
            {listItems}

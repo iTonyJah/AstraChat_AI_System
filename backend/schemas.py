@@ -2,8 +2,9 @@
 schemas.py - Pydantic-модели запросов/ответов
 """
 
-from typing import List, Optional, Any, Dict
-from pydantic import BaseModel
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel, Field
 
 
 class ChatMessage(BaseModel):
@@ -14,7 +15,33 @@ class ChatMessage(BaseModel):
     model: Optional[str] = None
     conversation_id: Optional[str] = None
     message_id: Optional[str] = None
-    image_gen_preset_id: Optional[str] = None
+
+
+class MessageFeedbackRequest(BaseModel):
+    """Лайк / дизлайк ответа ассистента."""
+
+    rating: Optional[Literal["like", "dislike"]] = None
+    tags: Optional[List[str]] = Field(default_factory=list)
+    comment: Optional[str] = None
+    multi_llm_slot_index: Optional[int] = None
+
+
+class ContextBreakdownRequest(BaseModel):
+    model_path: Optional[str] = None
+    agent_id: Optional[int] = None
+    use_kb_rag: bool = False
+    tool_ids: Optional[List[str]] = None
+    project_instructions: Optional[str] = None
+
+
+class FollowUpHistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class FollowUpSuggestionsRequest(BaseModel):
+    messages: List[FollowUpHistoryMessage]
+    model_path: Optional[str] = None
 
 
 class ModelSettings(BaseModel):
@@ -74,7 +101,7 @@ class DocumentQueryRequest(BaseModel):
 
 
 class RAGSettings(BaseModel):
-    strategy: Optional[str] = None  # auto | hybrid | standard | lexical | raw_cosine | graph
+    strategy: Optional[str] = None  # auto | hybrid | vector | lexical | raw_cosine | graph
     agentic_rag_enabled: Optional[bool] = None
     agentic_max_iterations: Optional[int] = None
     # Препроцесс запроса перед поиском в SVC-RAG (доп. вызовы LLM при включении)
@@ -87,6 +114,8 @@ class RAGSettings(BaseModel):
     rag_chunking_strategy: Optional[str] = None  # hierarchical | fixed | markdown | separators | semantic
     # Размер перекрытия соседних чанков при индексации
     rag_chunk_overlap: Optional[int] = None
+    # Целевой размер чанка при индексации (символы)
+    rag_chunk_size: Optional[int] = None
     # Порог похожести retrieval [0..1]
     rag_similarity_threshold: Optional[float] = None
     # Включить cross-encoder reranking
@@ -95,6 +124,14 @@ class RAGSettings(BaseModel):
     rag_rerank_top_n: Optional[int] = None
     # Пользовательский системный промпт для ответа с RAG-контекстом
     rag_system_prompt: Optional[str] = None
+    # Пути выбранных моделей (local/... или huggingface/...)
+    rag_embedding_model_path: Optional[str] = None
+    rag_reranker_model_path: Optional[str] = None
+
+
+class RagModelSelectRequest(BaseModel):
+    model_type: str  # embedding | reranker
+    model_path: str
 
 
 class AgentModeRequest(BaseModel):

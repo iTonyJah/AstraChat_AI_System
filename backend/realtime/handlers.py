@@ -35,9 +35,14 @@ from backend.realtime.rag_evidence import (
 )
 from backend.rag_query.post_generation import maybe_replace_ungrounded
 from backend.rag_query.prompts import RAG_STRICT_NOT_FOUND_MESSAGE, merge_strict_rag_system_prompt
+from backend.services.user_feedback_context import (
+    build_user_feedback_system_block,
+    merge_feedback_into_system_prompt,
+)
 from backend.auth.jwt_handler import decode_token, decode_token_signature_only
 from backend.settings.cef_logger.cef_audit_context import cef_socket_remote_from_environ
 from backend.settings.logging import get_logger
+from backend.mcp.resolvers import resolve_chat_tool_ids
 logger = get_logger(__name__)
 
 
@@ -59,7 +64,7 @@ def _make_ctx_runner(factory):
     def _runner():
         return _ctx.run(factory)
     return _runner
-_VALID_RAG_STRATEGIES = {"auto", "hierarchical", "hybrid", "standard", "graph"}
+_VALID_RAG_STRATEGIES = {"auto", "hierarchical", "hybrid", "vector", "lexical", "graph"}
 
 
 def _extract_socket_token(auth: Any, environ: Optional[Dict[str, Any]]) -> Optional[str]:
@@ -733,7 +738,12 @@ async def _handle_multi_llm(
         logger.info(f"[multi-llm inline_context] {len(inline_context)} символов, RAG-контекст {'совмещён' if final_user_message != inline_block else 'не применялся'}")
     # Inline-изображения (base64 data URL для мультимодальной модели)
     inline_imgs = list(inline_images) if inline_images else None
+    feedback_block = await build_user_feedback_system_block(
+        (current_user or {}).get("user_id"),
+        conversation_id=conversation_id,
+    )
     eff_system_prompt = project_instructions.strip() if project_instructions else None
+    eff_system_prompt = merge_feedback_into_system_prompt(eff_system_prompt, feedback_block)
     if context_added:
         eff_system_prompt = merge_strict_rag_system_prompt(
             eff_system_prompt, rag_override=getattr(state, "rag_system_prompt", None)
@@ -776,7 +786,7 @@ async def _handle_multi_llm(
             )
         return
     n_models = len(multi_llm_models)
-    tool_ids = data.get("tool_ids") or data.get("mcp_tool_ids") or []
+    tool_ids = resolve_chat_tool_ids(data.get("tool_ids") or data.get("mcp_tool_ids"))
     mcp_enabled = bool(tool_ids and current_user and not inline_imgs)
     mcp_temperature = float(data.get("temperature") or 0.7)
     mcp_max_tokens = int(data.get("max_tokens") or 1024)
@@ -966,7 +976,7 @@ async def _handle_agent_mode(
         "agentic_rag_enabled": agentic_rag_enabled,
         "agentic_max_iterations": int(getattr(state, "agentic_max_iterations", 2)),
         "enable_thinking": enable_thinking,
-        "tool_ids": data.get("tool_ids") or data.get("mcp_tool_ids") or [],
+        "tool_ids": resolve_chat_tool_ids(data.get("tool_ids") or data.get("mcp_tool_ids")),
         "current_user": current_user,
         "conversation_id": conversation_id,
         "message_id": data.get("message_id"),
@@ -974,9 +984,17 @@ async def _handle_agent_mode(
     set_tool_context(context)
     effective_message = user_message
 
+    feedback_block = await build_user_feedback_system_block(
+        (current_user or {}).get("user_id"),
+        conversation_id=conversation_id,
+    )
+
     # Инструкции проекта добавляются как системный префикс к сообщению пользователя
     if project_instructions and project_instructions.strip():
         effective_message = f"[Инструкции проекта: {project_instructions.strip()}]\n\n{user_message}"
+    if feedback_block:
+        effective_message = f"{feedback_block}\n\n{effective_message}"
+        context["user_feedback_block"] = feedback_block
     # Legacy pre-retrieval (fallback, если Agentic RAG отключен)
     if (not agentic_rag_enabled) and rag_client and project_id:
         try:
@@ -1388,6 +1406,11 @@ async def _handle_direct(
         logger.debug(f"[direct] project_instructions применены к system_prompt (project={project_id})")
     else:
         eff_system_prompt = base_system_prompt or None
+    feedback_block = await build_user_feedback_system_block(
+        (current_user or {}).get("user_id"),
+        conversation_id=conversation_id,
+    )
+    eff_system_prompt = merge_feedback_into_system_prompt(eff_system_prompt, feedback_block)
     if context_added:
         eff_system_prompt = merge_strict_rag_system_prompt(
             eff_system_prompt, rag_override=getattr(state, "rag_system_prompt", None)
@@ -1414,7 +1437,9 @@ model_path_for_call=eff_model_path,
         enable_thinking=enable_thinking,
     )
 
-    tool_ids = data.get("tool_ids") or data.get("mcp_tool_ids") or []
+    tool_ids = resolve_chat_tool_ids(data.get("tool_ids") or data.get("mcp_tool_ids"))
+    if tool_ids:
+        logger.info("[MCP] direct chat tool_ids=%s", tool_ids)
     mcp_result = None
     if not canned and tool_ids and current_user:
         try:

@@ -28,13 +28,15 @@ import {
 import { useAppActions } from '../../contexts/AppContext';
 import { getApiUrl } from '../../config/api';
 import {
-  DROPDOWN_TRIGGER_BUTTON_SX,
-  DROPDOWN_CHEVRON_SX,
   getDropdownPopoverPaperSx,
   getDropdownItemSx,
-  DROPDOWN_ITEM_HOVER_BG,
+  getDropdownTriggerButtonSx,
+  getDropdownTriggerTextSx,
+  getDropdownChevronSx,
+  getDropdownItemStateSx,
 } from '../../constants/menuStyles';
 import MemoryRagLibraryModal from '../MemoryRagLibraryModal';
+import RagModelSelector from '../RagModelSelector';
 import {
   MODEL_SETTINGS_RESET_BUTTON_SX,
   MODEL_SETTINGS_LABEL_WRAPPER_SX,
@@ -42,7 +44,44 @@ import {
   MODEL_SETTINGS_INPUT_SX,
 } from '../../constants/modelSettingsStyles';
 
-type RAGStrategy = 'auto' | 'hybrid' | 'standard' | 'graph' | 'lexical';
+const RAG_NUM_FIELDS_ROW_SX = {
+  display: 'flex',
+  flexDirection: { xs: 'column', sm: 'row' },
+  gap: 2,
+  alignItems: { sm: 'flex-start' },
+  flexWrap: 'wrap',
+} as const;
+
+const RAG_MODEL_SELECTOR_ROW_SX = {
+  display: 'flex',
+  flexDirection: { xs: 'column', sm: 'row' },
+  justifyContent: 'space-between',
+  alignItems: { xs: 'flex-start', sm: 'center' },
+  gap: 1.5,
+  py: 1,
+} as const;
+
+function ragModelRowLabel(label: string, tooltip: string) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, flexShrink: 0 }}>
+      <Typography variant="body1" fontWeight={500}>
+        {label}
+      </Typography>
+      <Tooltip title={tooltip} arrow>
+        <IconButton
+          size="small"
+          sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Справка: ${label}`}
+        >
+          <HelpOutlineIcon fontSize="small" color="action" />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
+type RAGStrategy = 'auto' | 'hybrid' | 'vector' | 'graph' | 'lexical';
 type ChunkingStrategy = 'hierarchical' | 'fixed' | 'markdown' | 'separators' | 'semantic';
 const RAG_STRATEGY_STORAGE_KEY = 'rag_strategy';
 const RAG_CHUNKING_STORAGE_KEY = 'rag_chunking_strategy';
@@ -52,7 +91,9 @@ const DEFAULT_RAG_SYSTEM_PROMPT =
 function normalizeStoredStrategy(raw: string | null): RAGStrategy {
   const s = (raw || 'auto').trim().toLowerCase();
   if (s === 'reranking') return 'hybrid';
-  if (s === 'auto' || s === 'hybrid' || s === 'standard' || s === 'graph' || s === 'lexical') {
+  // Однократная миграция старого внутреннего имени; новые запросы его не используют.
+  if (s === 'standard') return 'vector';
+  if (s === 'auto' || s === 'hybrid' || s === 'vector' || s === 'graph' || s === 'lexical') {
     return s;
   }
   return 'auto';
@@ -70,7 +111,11 @@ interface RAGSettingsProps {}
 
 export default function RAGSettings({}: RAGSettingsProps) {
   const theme = useTheme();
-  const dropdownItemSx = useMemo(() => getDropdownItemSx(theme.palette.mode === 'dark'), [theme.palette.mode]);
+  const isDarkMode = theme.palette.mode === 'dark';
+  const dropdownItemSx = useMemo(() => getDropdownItemSx(isDarkMode), [isDarkMode]);
+  const dropdownTriggerSx = useMemo(() => getDropdownTriggerButtonSx(isDarkMode), [isDarkMode]);
+  const dropdownTriggerTextSx = useMemo(() => getDropdownTriggerTextSx(isDarkMode), [isDarkMode]);
+  const dropdownChevronSx = useMemo(() => getDropdownChevronSx(isDarkMode), [isDarkMode]);
   const [selectedStrategy, setSelectedStrategy] = useState<RAGStrategy>(() => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(RAG_STRATEGY_STORAGE_KEY) : null;
     return normalizeStoredStrategy(saved);
@@ -89,6 +134,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
     return normalizeChunkingStrategy(saved);
   });
   const [ragChunkOverlap, setRagChunkOverlap] = useState(200);
+  const [ragChunkSize, setRagChunkSize] = useState(1000);
   const [ragSimilarityThreshold, setRagSimilarityThreshold] = useState(0);
   const [ragRerankingEnabled, setRagRerankingEnabled] = useState(false);
   const [ragRerankTopN, setRagRerankTopN] = useState(5);
@@ -114,10 +160,9 @@ export default function RAGSettings({}: RAGSettingsProps) {
     }
 
     const timeoutId = setTimeout(() => {
-      saveRAGSettings().then(() => {
-        // После сохранения обновляем информацию о применяемом методе
-        loadRAGSettings();
-      });
+      // Не перечитываем настройки сразу после PUT: при ошибке/старой версии
+      // backend это возвращало прежнее ``auto`` и визуально отменяло выбор.
+      void saveRAGSettings();
     }, 300); // Небольшая задержка для "дребезга" изменений
 
     return () => clearTimeout(timeoutId);
@@ -129,6 +174,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
     ragHydeEnabled,
     ragChatTopK,
     ragChunkingStrategy,
+    ragChunkSize,
     ragChunkOverlap,
     ragSimilarityThreshold,
     ragRerankingEnabled,
@@ -143,7 +189,14 @@ export default function RAGSettings({}: RAGSettingsProps) {
       if (response.ok) {
         const data = await response.json();
         if (data.strategy) {
-          const next = normalizeStoredStrategy(String(data.strategy));
+          // Для чата стратегия является пользовательским выбором этого браузера:
+          // SocketContext тоже читает её из localStorage. Не затираем её старым
+          // серверным ``auto`` при открытии настроек или временной ошибке сохранения.
+          const localStrategy =
+            typeof localStorage !== 'undefined'
+              ? localStorage.getItem(RAG_STRATEGY_STORAGE_KEY)
+              : null;
+          const next = normalizeStoredStrategy(localStrategy ?? String(data.strategy));
           setSelectedStrategy(next);
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem(RAG_STRATEGY_STORAGE_KEY, next);
@@ -175,6 +228,9 @@ export default function RAGSettings({}: RAGSettingsProps) {
         if (typeof data.rag_chunk_overlap === 'number' && Number.isFinite(data.rag_chunk_overlap)) {
           setRagChunkOverlap(Math.max(0, Math.min(2000, Math.round(data.rag_chunk_overlap))));
         }
+        if (typeof data.rag_chunk_size === 'number' && Number.isFinite(data.rag_chunk_size)) {
+          setRagChunkSize(Math.max(200, Math.min(8000, Math.round(data.rag_chunk_size))));
+        }
         if (typeof data.rag_similarity_threshold === 'number' && Number.isFinite(data.rag_similarity_threshold)) {
           setRagSimilarityThreshold(Math.max(0, Math.min(1, data.rag_similarity_threshold)));
         }
@@ -199,7 +255,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
     }
   };
 
-  const saveRAGSettings = async (): Promise<void> => {
+  const saveRAGSettings = async (): Promise<boolean> => {
     try {
       const response = await fetch(getApiUrl('/api/rag/settings'), {
         method: 'PUT',
@@ -212,6 +268,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
           rag_hyde_enabled: ragHydeEnabled,
           rag_chat_top_k: ragChatTopK,
           rag_chunking_strategy: ragChunkingStrategy,
+          rag_chunk_size: ragChunkSize,
           rag_chunk_overlap: ragChunkOverlap,
           rag_similarity_threshold: ragSimilarityThreshold,
           rag_reranking_enabled: ragRerankingEnabled,
@@ -226,12 +283,15 @@ export default function RAGSettings({}: RAGSettingsProps) {
         } else {
           showNotification('success', 'Настройки RAG сохранены');
         }
+        return true;
       } else {
-        throw new Error(`Ошибка сохранения настроек RAG: ${response.status}`);
+        const details = await response.text().catch(() => '');
+        throw new Error(`Ошибка сохранения настроек RAG: ${response.status}${details ? ` — ${details}` : ''}`);
       }
     } catch (error) {
       console.error('Ошибка сохранения настроек RAG:', error);
-      showNotification('error', 'Ошибка сохранения настроек RAG');
+      showNotification('error', 'Не удалось сохранить настройки на сервере. Локальный выбор сохранён.');
+      return false;
     }
   };
 
@@ -242,6 +302,9 @@ export default function RAGSettings({}: RAGSettingsProps) {
         throw new Error(`reset ${response.status}`);
       }
       skipNextRagSaveToastRef.current = true;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(RAG_STRATEGY_STORAGE_KEY, 'auto');
+      }
       await loadRAGSettings();
       showNotification('success', 'Настройки RAG восстановлены по умолчанию');
     } catch (error) {
@@ -255,13 +318,13 @@ export default function RAGSettings({}: RAGSettingsProps) {
       case 'auto':
         return 'Автоматический выбор';
       case 'hybrid':
-        return 'Гибридный поиск';
-      case 'standard':
+        return 'Гибридный';
+      case 'vector':
         return 'Векторный';
       case 'lexical':
-        return 'Ключевой/Лексический (BM25)';
+        return 'Лексический';
       case 'graph':
-        return 'Graph RAG (графовый поиск)';
+        return 'Графовый';
       default:
         return 'Автоматический выбор';
     }
@@ -270,15 +333,15 @@ export default function RAGSettings({}: RAGSettingsProps) {
   const getStrategyDescription = (strategy: RAGStrategy): string => {
     switch (strategy) {
       case 'auto':
-        return 'Сервер автоматически подбирает оптимальный режим среди доступных стратегий (гибрид, векторный, графовый) по типу запроса.';
+        return 'Анализирует формулировку вопроса и сам выбирает одну из четырёх стратегий. Точные фразы и коды направляет в лексический поиск, вопросы по смыслу — в векторный, связи между фактами — в графовый, а для остальных запросов использует гибридный.';
       case 'hybrid':
-        return 'Комбинирует векторный поиск (семантический) и BM25 (ключевые слова), объединяет кандидатов; при RAG_USE_RERANKING в SVC-RAG — cross-encoder переупорядочивает фрагменты под запрос. Так легче попасть в нужный абзац (например, место работы в резюме).';
-      case 'standard':
-        return 'Чистый векторный поиск через pgvector (cosine similarity). Хорошо работает на смысловых запросах и перефразах.';
+        return 'Одновременно ищет и по смыслу, и по точным словам. Хорошо подходит для большинства обычных вопросов, когда заранее неизвестно, какой способ поиска даст лучший результат.';
+      case 'vector':
+        return 'Ищет фрагменты, близкие к вопросу по смыслу, даже если в документе использованы другие слова. Лучше выбирать для пересказов, объяснений и вопросов со свободной формулировкой.';
       case 'lexical':
-        return 'Ключевой/лексический поиск работает по BM25. Полезен для точных совпадений терминов, кодов, артикулов, ФИО и формулировок без смыслового расширения.';
+        return 'Ищет точные слова и формулировки из вопроса. Лучше выбирать для кодов, номеров, артикулов, имён, цитат и терминов, которые должны совпасть с текстом документа.';
       case 'graph':
-        return 'Графовый RAG: сначала находит релевантные seed-чанки, затем расширяет контекст по связям между фрагментами (соседние чанки, семантические связи, общие сущности) и ранжирует итоговый набор. Полезно для многошаговых вопросов и длинных документов.';
+        return 'Находит подходящие фрагменты и добавляет связанный с ними контекст из документа. Лучше выбирать для сравнений, причин и последствий, цепочек событий и вопросов, ответ на которые расположен в нескольких связанных фрагментах.';
       default:
         return '';
     }
@@ -287,15 +350,15 @@ export default function RAGSettings({}: RAGSettingsProps) {
   const getStrategyUseCase = (strategy: RAGStrategy): string => {
     switch (strategy) {
       case 'auto':
-        return 'Используйте для большинства случаев - система сама выберет оптимальную стратегию.';
+        return 'Выбирайте, если не уверены, какая стратегия лучше подходит к вопросу.';
       case 'hybrid':
-        return 'Используйте когда нужен баланс между точностью и скоростью, особенно для поиска по ключевым словам и датам.';
-      case 'standard':
-        return 'Используйте как основной семантический режим: хороший баланс точности и скорости.';
+        return 'Выбирайте как универсальный режим для повседневной работы с документами.';
+      case 'vector':
+        return 'Выбирайте, когда смысл важнее совпадения конкретных слов.';
       case 'lexical':
-        return 'Используйте для строгих запросов по словам: коды, номера, имена, артикулы, точные термины.';
+        return 'Выбирайте, когда в документе нужно найти конкретное слово, имя, номер или выражение.';
       case 'graph':
-        return 'Используйте для сложных запросов, где ответ требует объединять факты из нескольких связанных фрагментов.';
+        return 'Выбирайте для сложных вопросов, требующих собрать несколько связанных фактов.';
       default:
         return '';
     }
@@ -319,17 +382,34 @@ export default function RAGSettings({}: RAGSettingsProps) {
   };
 
   const getChunkingDescription = (strategy: ChunkingStrategy): string => {
+    const scope =
+      ' Применяется к RAG проектов и документов агента. Библиотека (кнопка в чате / KB / memory) всегда режется универсальным структурным чанкером.';
     switch (strategy) {
       case 'hierarchical':
-        return 'Документ сначала делится на крупные смысловые блоки, затем на более мелкие фрагменты. Это обычно дает лучший баланс между полнотой контекста и точностью поиска.';
+        return (
+          'Документ сначала делится на крупные смысловые блоки, затем на более мелкие фрагменты. Это обычно дает лучший баланс между полнотой контекста и точностью поиска.' +
+          scope
+        );
       case 'fixed':
-        return 'Текст режется на чанки фиксированной длины. Предсказуемо по размеру и скорости, но может разрывать мысль на границах.';
+        return (
+          'Текст режется на чанки фиксированной длины. Предсказуемо по размеру и скорости, но может разрывать мысль на границах.' +
+          scope
+        );
       case 'markdown':
-        return 'Чанкование ориентируется на структуру разметки (заголовки, списки, секции). Хорошо подходит для технической документации и markdown-файлов.';
+        return (
+          'Чанкование ориентируется на структуру разметки (заголовки, списки, секции). Хорошо подходит для технической документации и markdown-файлов.' +
+          scope
+        );
       case 'separators':
-        return 'Разделение по естественным разделителям (абзацы, переносы, знаки, служебные маркеры). Менее жесткое, чем fixed, и обычно более читабельное.';
+        return (
+          'Разделение по естественным разделителям (абзацы, переносы, знаки, служебные маркеры). Менее жесткое, чем fixed, и обычно более читабельное.' +
+          scope
+        );
       case 'semantic':
-        return 'Смысловое чанкование пытается сохранять цельные идеи внутри чанка. Обычно дает лучшее качество retrieval, но требует больше вычислений.';
+        return (
+          'Смысловое чанкование пытается сохранять цельные идеи внутри чанка (абзацный режим). Обычно дает лучшее качество retrieval.' +
+          scope
+        );
       default:
         return '';
     }
@@ -350,20 +430,6 @@ export default function RAGSettings({}: RAGSettingsProps) {
       default:
         return '';
     }
-  };
-
-  const ragPillsRowSx = {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 1.5,
-    alignItems: 'flex-start',
-  };
-
-  const ragPillFieldWrapperSx = {
-    width: { xs: '100%', sm: 148 },
-    maxWidth: { xs: '100%', sm: 148 },
-    flex: '0 0 auto',
-    minWidth: 0,
   };
 
   return (
@@ -455,6 +521,41 @@ export default function RAGSettings({}: RAGSettingsProps) {
 
             <Divider />
 
+            <ListItem sx={{ px: 0, py: 0.5, display: 'block' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Box sx={RAG_MODEL_SELECTOR_ROW_SX}>
+                  {ragModelRowLabel(
+                    'Модель эмбеддингов',
+                    'Преобразует текст документов и запросов в векторы для семантического поиска в RAG.'
+                  )}
+                  <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
+                    <RagModelSelector
+                      kind="embedding"
+                      isDarkMode={theme.palette.mode === 'dark'}
+                      disabled={isLoading}
+                      triggerMaxWidth={280}
+                    />
+                  </Box>
+                </Box>
+                <Box sx={RAG_MODEL_SELECTOR_ROW_SX}>
+                  {ragModelRowLabel(
+                    'Cross-encoder (реранкер)',
+                    'Переупорядочивает найденные чанки после первичного поиска для более точной выдачи.'
+                  )}
+                  <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
+                    <RagModelSelector
+                      kind="reranker"
+                      isDarkMode={theme.palette.mode === 'dark'}
+                      disabled={isLoading}
+                      triggerMaxWidth={280}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            </ListItem>
+
+            <Divider />
+
             <ListItem
               sx={{
                 px: 0,
@@ -501,15 +602,15 @@ export default function RAGSettings({}: RAGSettingsProps) {
                 <Box
                   onClick={(e) => !isLoading && setStrategyPopoverAnchor(e.currentTarget)}
                   sx={{
-                    ...DROPDOWN_TRIGGER_BUTTON_SX,
+                    ...dropdownTriggerSx,
                     opacity: isLoading ? 0.7 : 1,
                     pointerEvents: isLoading ? 'none' : 'auto',
                   }}
                 >
-                  <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '0.875rem' }}>
+                  <Typography sx={dropdownTriggerTextSx}>
                     {getStrategyLabel(selectedStrategy)}
                   </Typography>
-                  <ExpandMoreIcon sx={{ ...DROPDOWN_CHEVRON_SX, transform: strategyPopoverAnchor ? 'rotate(180deg)' : 'none' }} />
+                  <ExpandMoreIcon sx={{ ...dropdownChevronSx, transform: strategyPopoverAnchor ? 'rotate(180deg)' : 'none' }} />
                 </Box>
                 <Popover
                   open={Boolean(strategyPopoverAnchor)}
@@ -517,10 +618,10 @@ export default function RAGSettings({}: RAGSettingsProps) {
                   onClose={() => setStrategyPopoverAnchor(null)}
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                   transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                  slotProps={{ paper: { sx: getDropdownPopoverPaperSx(strategyPopoverAnchor) } }}
+                  slotProps={{ paper: { sx: getDropdownPopoverPaperSx(strategyPopoverAnchor, isDarkMode) } }}
                 >
                   <Box sx={{ py: 0.5 }}>
-                    {(['auto', 'hybrid', 'standard', 'lexical', 'graph'] as const).map((strategy) => (
+                    {(['auto', 'vector', 'lexical', 'hybrid', 'graph'] as const).map((strategy) => (
                       <Box
                         key={strategy}
                         onClick={() => {
@@ -534,9 +635,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
                         }}
                         sx={{
                           ...dropdownItemSx,
-                          color: selectedStrategy === strategy ? 'white' : 'rgba(255,255,255,0.9)',
-                          fontWeight: selectedStrategy === strategy ? 600 : 400,
-                          bgcolor: selectedStrategy === strategy ? DROPDOWN_ITEM_HOVER_BG : 'transparent',
+                          ...getDropdownItemStateSx(isDarkMode, selectedStrategy === strategy),
                         }}
                       >
                         {getStrategyLabel(strategy)}
@@ -637,15 +736,15 @@ export default function RAGSettings({}: RAGSettingsProps) {
                 <Box
                   onClick={(e) => !isLoading && setChunkingPopoverAnchor(e.currentTarget)}
                   sx={{
-                    ...DROPDOWN_TRIGGER_BUTTON_SX,
+                    ...dropdownTriggerSx,
                     opacity: isLoading ? 0.7 : 1,
                     pointerEvents: isLoading ? 'none' : 'auto',
                   }}
                 >
-                  <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '0.875rem' }}>
+                  <Typography sx={dropdownTriggerTextSx}>
                     {getChunkingLabel(ragChunkingStrategy)}
                   </Typography>
-                  <ExpandMoreIcon sx={{ ...DROPDOWN_CHEVRON_SX, transform: chunkingPopoverAnchor ? 'rotate(180deg)' : 'none' }} />
+                  <ExpandMoreIcon sx={{ ...dropdownChevronSx, transform: chunkingPopoverAnchor ? 'rotate(180deg)' : 'none' }} />
                 </Box>
                 <Popover
                   open={Boolean(chunkingPopoverAnchor)}
@@ -653,7 +752,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
                   onClose={() => setChunkingPopoverAnchor(null)}
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                   transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                  slotProps={{ paper: { sx: getDropdownPopoverPaperSx(chunkingPopoverAnchor) } }}
+                  slotProps={{ paper: { sx: getDropdownPopoverPaperSx(chunkingPopoverAnchor, isDarkMode) } }}
                 >
                   <Box sx={{ py: 0.5 }}>
                     {(['hierarchical', 'fixed', 'markdown', 'separators', 'semantic'] as const).map((strategy) => (
@@ -668,9 +767,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
                         }}
                         sx={{
                           ...dropdownItemSx,
-                          color: ragChunkingStrategy === strategy ? 'white' : 'rgba(255,255,255,0.9)',
-                          fontWeight: ragChunkingStrategy === strategy ? 600 : 400,
-                          bgcolor: ragChunkingStrategy === strategy ? DROPDOWN_ITEM_HOVER_BG : 'transparent',
+                          ...getDropdownItemStateSx(isDarkMode, ragChunkingStrategy === strategy),
                         }}
                       >
                         {getChunkingLabel(strategy)}
@@ -729,112 +826,190 @@ export default function RAGSettings({}: RAGSettingsProps) {
             <Divider />
 
             <ListItem sx={{ px: 0, py: 1.5, display: 'block' }}>
-              <Box sx={ragPillsRowSx}>
-                <Box sx={ragPillFieldWrapperSx}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  disabled={isLoading}
-                  type="number"
-                  label={
-                    <Box sx={MODEL_SETTINGS_LABEL_WRAPPER_SX} component="span">
-                      Количество чанков (K)
-                      <Tooltip
-                        title={
-                          'Сколько наиболее релевантных фрагментов запрашивать у SVC-RAG и подмешивать в промпт (чат, /api/chat с RAG, агент с документами; в retrieve_rag_context — если k в JSON не указан). ' +
-                          'Диапазон 1–64, по умолчанию 5. Больше K — длиннее контекст и медленнее ответ LLM. ' +
-                          'Нарезка файла при загрузке в базу не меняется: при индексации используется RecursiveCharacterTextSplitter в SVC-RAG (размер чанка и перекрытие из конфига сервиса, обычно ~1000 символов и ~200 перекрытия).'
-                        }
-                        arrow
-                      >
-                        <IconButton
-                          size="small"
-                          sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
-                          onClick={(e) => e.stopPropagation()}
+              <Box sx={RAG_NUM_FIELDS_ROW_SX}>
+                <Box sx={{ maxWidth: { xs: '100%', sm: 300 }, minWidth: { sm: 260 }, flex: { sm: '0 0 auto' } }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    disabled={isLoading}
+                    type="number"
+                    label={
+                      <Box sx={MODEL_SETTINGS_LABEL_WRAPPER_SX} component="span">
+                        Количество чанков (K)
+                        <Tooltip
+                          title={
+                            'Сколько наиболее релевантных фрагментов запрашивать у SVC-RAG и подмешивать в промпт. Диапазон 1–64, по умолчанию 5. Больше K — длиннее контекст и медленнее ответ LLM.'
+                          }
+                          arrow
                         >
-                          <HelpOutlineIcon fontSize="small" color="action" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  }
-                  value={ragChatTopK}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') return;
-                    const v = parseInt(raw, 10);
-                    if (!Number.isNaN(v)) setRagChatTopK(Math.max(1, Math.min(64, v)));
-                  }}
-                  onBlur={(e) => {
-                    const raw = e.target.value.trim();
-                    if (raw === '') {
-                      setRagChatTopK(5);
-                      return;
+                          <IconButton
+                            size="small"
+                            sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Справка: количество чанков"
+                          >
+                            <HelpOutlineIcon fontSize="small" color="action" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     }
-                    const n = parseInt(raw, 10);
-                    if (Number.isNaN(n)) setRagChatTopK(5);
-                    else setRagChatTopK(Math.max(1, Math.min(64, n)));
-                  }}
-                  inputProps={{ min: 1, max: 64, step: 1 }}
-                  sx={MODEL_SETTINGS_INPUT_SX}
-                />
+                    value={ragChatTopK}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') return;
+                      const v = parseInt(raw, 10);
+                      if (!Number.isNaN(v)) setRagChatTopK(Math.max(1, Math.min(64, v)));
+                    }}
+                    onBlur={(e) => {
+                      const raw = e.target.value.trim();
+                      if (raw === '') {
+                        setRagChatTopK(5);
+                        return;
+                      }
+                      const n = parseInt(raw, 10);
+                      if (Number.isNaN(n)) setRagChatTopK(5);
+                      else setRagChatTopK(Math.max(1, Math.min(64, n)));
+                    }}
+                    inputProps={{ min: 1, max: 64, step: 1 }}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </Box>
-                <Box sx={ragPillFieldWrapperSx}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  disabled={isLoading}
-                  type="number"
-                  label="Размер перекрытия"
-                  value={ragChunkOverlap}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') return;
-                    const v = parseInt(raw, 10);
-                    if (!Number.isNaN(v)) setRagChunkOverlap(Math.max(0, Math.min(2000, v)));
-                  }}
-                  onBlur={(e) => {
-                    const raw = e.target.value.trim();
-                    if (raw === '') {
-                      setRagChunkOverlap(200);
-                      return;
+                <Box sx={{ maxWidth: { xs: '100%', sm: 236 }, minWidth: { sm: 200 }, flex: { sm: '0 0 auto' } }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    disabled={isLoading}
+                    type="number"
+                    label={
+                      <Box sx={MODEL_SETTINGS_LABEL_WRAPPER_SX} component="span">
+                        Размер чанка
+                        <Tooltip
+                          title="Целевой размер одного чанка в символах при нарезке документа. Диапазон 200–8000, по умолчанию 1000. Меньше — точнее, но больше чанков; больше — шире контекст в каждом фрагменте."
+                          arrow
+                        >
+                          <IconButton
+                            size="small"
+                            sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Справка: размер чанка"
+                          >
+                            <HelpOutlineIcon fontSize="small" color="action" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     }
-                    const n = parseInt(raw, 10);
-                    if (Number.isNaN(n)) setRagChunkOverlap(200);
-                    else setRagChunkOverlap(Math.max(0, Math.min(2000, n)));
-                  }}
-                  inputProps={{ min: 0, max: 2000, step: 10 }}
-                  sx={MODEL_SETTINGS_INPUT_SX}
-                />
+                    value={ragChunkSize}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') return;
+                      const v = parseInt(raw, 10);
+                      if (!Number.isNaN(v)) setRagChunkSize(Math.max(200, Math.min(8000, v)));
+                    }}
+                    onBlur={(e) => {
+                      const raw = e.target.value.trim();
+                      if (raw === '') {
+                        setRagChunkSize(1000);
+                        return;
+                      }
+                      const n = parseInt(raw, 10);
+                      if (Number.isNaN(n)) setRagChunkSize(1000);
+                      else setRagChunkSize(Math.max(200, Math.min(8000, n)));
+                    }}
+                    inputProps={{ min: 200, max: 8000, step: 50 }}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </Box>
-                <Box sx={ragPillFieldWrapperSx}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  disabled={isLoading}
-                  type="number"
-                  label="Порог схожести"
-                  value={ragSimilarityThreshold}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') return;
-                    const v = Number(raw);
-                    if (!Number.isNaN(v)) {
-                      setRagSimilarityThreshold(Math.max(0, Math.min(1, Number(v.toFixed(4)))));
+                <Box sx={{ maxWidth: { xs: '100%', sm: 236 }, minWidth: { sm: 200 }, flex: { sm: '0 0 auto' } }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    disabled={isLoading}
+                    type="number"
+                    label={
+                      <Box sx={MODEL_SETTINGS_LABEL_WRAPPER_SX} component="span">
+                        Размер перекрытия
+                        <Tooltip
+                          title="Количество символов перекрытия между соседними чанками при нарезке документа. Диапазон 0–2000, по умолчанию 200."
+                          arrow
+                        >
+                          <IconButton
+                            size="small"
+                            sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Справка: размер перекрытия"
+                          >
+                            <HelpOutlineIcon fontSize="small" color="action" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     }
-                  }}
-                  onBlur={(e) => {
-                    const raw = e.target.value.trim();
-                    if (raw === '') {
-                      setRagSimilarityThreshold(0);
-                      return;
+                    value={ragChunkOverlap}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') return;
+                      const v = parseInt(raw, 10);
+                      if (!Number.isNaN(v)) setRagChunkOverlap(Math.max(0, Math.min(2000, v)));
+                    }}
+                    onBlur={(e) => {
+                      const raw = e.target.value.trim();
+                      if (raw === '') {
+                        setRagChunkOverlap(200);
+                        return;
+                      }
+                      const n = parseInt(raw, 10);
+                      if (Number.isNaN(n)) setRagChunkOverlap(200);
+                      else setRagChunkOverlap(Math.max(0, Math.min(2000, n)));
+                    }}
+                    inputProps={{ min: 0, max: 2000, step: 10 }}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Box>
+                <Box sx={{ maxWidth: { xs: '100%', sm: 236 }, minWidth: { sm: 200 }, flex: { sm: '0 0 auto' } }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    disabled={isLoading}
+                    type="number"
+                    label={
+                      <Box sx={MODEL_SETTINGS_LABEL_WRAPPER_SX} component="span">
+                        Порог схожести
+                        <Tooltip
+                          title="Минимальный порог схожести для включения чанка в результат поиска. 0 — без фильтрации, выше — строже отбор. Диапазон 0–1."
+                          arrow
+                        >
+                          <IconButton
+                            size="small"
+                            sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Справка: порог схожести"
+                          >
+                            <HelpOutlineIcon fontSize="small" color="action" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     }
-                    const n = Number(raw);
-                    if (Number.isNaN(n)) setRagSimilarityThreshold(0);
-                    else setRagSimilarityThreshold(Math.max(0, Math.min(1, Number(n.toFixed(4)))));
-                  }}
-                  inputProps={{ min: 0, max: 1, step: 0.01 }}
-                  sx={MODEL_SETTINGS_INPUT_SX}
-                />
+                    value={ragSimilarityThreshold}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') return;
+                      const v = Number(raw);
+                      if (!Number.isNaN(v)) {
+                        setRagSimilarityThreshold(Math.max(0, Math.min(1, Number(v.toFixed(4)))));
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const raw = e.target.value.trim();
+                      if (raw === '') {
+                        setRagSimilarityThreshold(0);
+                        return;
+                      }
+                      const n = Number(raw);
+                      if (Number.isNaN(n)) setRagSimilarityThreshold(0);
+                      else setRagSimilarityThreshold(Math.max(0, Math.min(1, Number(n.toFixed(4)))));
+                    }}
+                    inputProps={{ min: 0, max: 1, step: 0.01 }}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </Box>
               </Box>
             </ListItem>
@@ -970,13 +1145,30 @@ export default function RAGSettings({}: RAGSettingsProps) {
             <Divider />
 
             <ListItem sx={{ px: 0, py: 1.5, display: 'block' }}>
-              <Box sx={ragPillFieldWrapperSx}>
+              <Box sx={{ maxWidth: { xs: '100%', sm: 320 }, minWidth: { sm: 280 }, flex: { sm: '0 0 auto' } }}>
                 <TextField
                   fullWidth
                   size="small"
                   disabled={isLoading || !ragRerankingEnabled}
                   type="number"
-                  label="Top-N после реранкинга"
+                  label={
+                    <Box sx={MODEL_SETTINGS_LABEL_WRAPPER_SX} component="span">
+                      Количество чанков после реранкинга (Top-N)
+                      <Tooltip
+                        title="Сколько лучших чанков оставить после переранжирования cross-encoder. Диапазон 1–64, по умолчанию 5. Работает только при включённом переранжировании."
+                        arrow
+                      >
+                        <IconButton
+                          size="small"
+                          sx={MODEL_SETTINGS_HELP_ICON_BUTTON_SX}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Справка: Top-N после реранкинга"
+                        >
+                          <HelpOutlineIcon fontSize="small" color="action" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  }
                   value={ragRerankTopN}
                   onChange={(e) => {
                     const raw = e.target.value;
@@ -995,7 +1187,7 @@ export default function RAGSettings({}: RAGSettingsProps) {
                     else setRagRerankTopN(Math.max(1, Math.min(64, n)));
                   }}
                   inputProps={{ min: 1, max: 64, step: 1 }}
-                  sx={MODEL_SETTINGS_INPUT_SX}
+                  InputLabelProps={{ shrink: true }}
                 />
               </Box>
             </ListItem>
