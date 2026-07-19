@@ -31,7 +31,21 @@
 - Backend: llama.cpp, CPU-инференс (gpu_layers: 0)
 - Контекст: 2048 токенов
 
-### 4. MCP веб-поиска (эталонный пример)
+### 4. Интеграция облачной LLM (Alibaba Cloud DashScope)
+Подключена внешняя модель **Qwen-Flash** через OpenAI-совместимый API:
+
+**Настройки `.env`:**
+```env
+DASHSCOPE_API_KEY=sk-ws-...
+LLM_PROVIDER_DASHSCOPE_KIND=openai-compat
+LLM_PROVIDER_DASHSCOPE_BASE_URL=https://ws-jcvu5jctl27w30kh.ap-southeast-1.maas.aliyuncs.com/compatible-mode
+LLM_PROVIDER_DASHSCOPE_API_KEY_ENV=DASHSCOPE_API_KEY
+LLM_PROVIDER_DASHSCOPE_ENABLED=true
+LLM_PROVIDER_DASHSCOPE_STATIC_MODEL=qwen-flash
+DEFAULT_LLM_PROVIDER=DASHSCOPE
+```
+
+### 5. MCP веб-поиска (эталонный пример)
 Добавил в docker-compose.yml контейнер mcp-websearch:
 ```yaml
 mcp-websearch:
@@ -43,3 +57,18 @@ mcp-websearch:
   environment:
     - MODE=http
     - DEFAULT_SEARCH_ENGINE=duckduckgo
+```
+
+## Текущий статус проекта
+
+### ✅ Архитектура полностью работоспособна
+- 12 микросервисов запущены
+- Локальная LLM (`qwen2.5-coder-7b`) активна в ОЗУ
+- Облачная LLM (`Qwen-Flash`) подключена как провайдер по умолчанию
+- MCP-протокол верифицирован на эталонном сервере WebSearch
+- Веб-интерфейс доступен на порту `3000`
+
+### ✅ Инфраструктура готова к разработке MCP-PPTX
+- Агентная архитектура (`MCPAgent`) протестирована
+- Механизм подключения внешних инструментов через backend-конфигурацию отлажен
+- Понятен паттерн интеграции MCP-серверов в AstraChat
