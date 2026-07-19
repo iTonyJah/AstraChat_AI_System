@@ -416,6 +416,22 @@ services:
     networks:
       - astrachat-network
 
+  mcp-powerpoint:
+    build:
+      context: ./mcp-powerpoint
+      dockerfile: Dockerfile
+    container_name: astrachat-mcp-powerpoint
+    ports:
+      - "8020:8000"
+    volumes:
+      - ./assets/pptx_output:/output
+    restart: unless-stopped
+    environment:
+      - PPT_TEMPLATE_PATH=/app/templates
+      - PYTHONUNBUFFERED=1
+    networks:
+      - astrachat-network
+
 # volumes:
 #   # Кэш для моделей (загружаемых из облака)
 #   llm_models_cache:

@@ -79,6 +79,23 @@ mcp:
       tool_name_prefix: mcp_websearch_
       auth_mode: service_account
       auth_type: none
+    # ========================================
+    # НОВЫЙ СЕРВЕР: Генерация презентаций PowerPoint
+    # ========================================
+    - id: pptx
+      display_name: "Генерация презентаций (.pptx)"
+      enabled: true
+      transport: streamable-http
+      base_url: "http://mcp-pptx:8000"
+      base_path: /mcp
+      health_path: /healthz
+      stateless: true
+      timeout_seconds: 300
+      tool_name_prefix: mcp_pptx_
+      auth_mode: service_account
+      auth_type: none
+      forward_headers:
+        enabled: false
   forward_headers:
     enabled: true
     user:
