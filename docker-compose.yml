@@ -3,27 +3,17 @@ services:
   llm-service:
     build:
       context: ./llm-svc
-      dockerfile: Dockerfile.cuda
+      dockerfile: Dockerfile
     ports:
       - "8002:8000"
-    gpus: all
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - NVIDIA_VISIBLE_DEVICES=none
     volumes:
-      # Только основной набор весов (на хосте: ./models/llm/… → в контейнере /app/models/llm/…)
       - ./models/llm:/app/models/llm:ro
       - ./llm-svc/config:/app/config:ro
     restart: unless-stopped
     networks:
       - astrachat-network
-
 #  # ComfyUI — генерация изображений (GGUF Unet через ComfyUI-GGUF). Модели: ./models/comfyui → /app/ComfyUI/models
 #  # UI/API: http://localhost:8188 ; из astrachat-backend: http://comfyui:8188 (переменная IMAGE_GEN_COMFYUI_URL)
 #  comfyui:
@@ -64,13 +54,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8001:8000"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [gpu]
     volumes:
       - ./whisperx_models:/app/models/whisperx_models
       - ./SVC-SPEECH-RECG/config:/app/config:ro
@@ -99,13 +89,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8004:8000"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [gpu]
     volumes:
       - ./SVC-OCR/config:/app/config:ro
       - ./surya_models:/app/models/surya
@@ -125,13 +115,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8003:8000"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [gpu]
     volumes:
       - ./diarize_models:/app/models/diarization:ro
       - ./SVC-SPEECH-DIAR/config:/app/config:ro
@@ -238,7 +228,7 @@ services:
     ports:
       - "8010:8000"
     volumes:
-      - ./models:/app/models:ro        # models/rag/* внутри контейнера
+      - ./models:/app/models        # models/rag/* внутри контейнера
       - ./SVC-RAG-MODELS/config:/app/config:ro
     environment:
       - CONFIG_PATH=/app/config/config.yml
@@ -393,6 +383,22 @@ services:
       - astrachat-network
     profiles:
       - production
+
+  # MCP WebSearch (веб-поиск для LLM)
+  mcp-websearch:
+    build:
+      context: ./mcp-websearch
+      dockerfile: Dockerfile
+    container_name: astrachat-mcp-websearch
+    ports:
+      - "8013:3000"
+    environment:
+      - MODE=http
+      - DEFAULT_SEARCH_ENGINE=duckduckgo
+      - ALLOWED_SEARCH_ENGINES=duckduckgo,bing,exa,brave
+    restart: unless-stopped
+    networks:
+      - astrachat-network
 
 # volumes:
 #   # Кэш для моделей (загружаемых из облака)
