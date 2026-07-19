@@ -45,7 +45,7 @@ interface RagModelSelectorProps {
 
 const SOURCE_LABELS: Record<string, string> = {
   local: 'local-rag',
-  huggingface: 'huggingface',
+  phoenix: 'phoenix',
 };
 
 const LEFT_PANEL_W = 185;
@@ -84,9 +84,15 @@ export default function RagModelSelector({
       const response = await fetch(getApiUrl(`/api/rag/models?type=${kind}`));
       if (!response.ok) return;
       const data = await response.json();
-      const rows: RagModelRow[] = data?.models?.[kind] ?? [];
+      const rows: RagModelRow[] = (data?.models?.[kind] ?? []).filter(
+        (m: RagModelRow) =>
+          m.source === 'local' ||
+          m.source === 'phoenix' ||
+          String(m.path || '').startsWith('local/') ||
+          String(m.path || '').startsWith('phoenix/'),
+      );
       setModels(rows);
-      setOffline(Boolean(data?.offline));
+      setOffline(true);
       const current = data?.current?.[kind];
       if (current?.path) {
         setSelectedPath(current.path);
@@ -157,6 +163,12 @@ export default function RagModelSelector({
       return;
     }
     const prevPath = selectedPath;
+    if (kind === 'embedding') {
+      const ok = window.confirm(
+        'Смена embedding-модели очищает векторный корпус - все документы придётся переиндексировать. Продолжить?',
+      );
+      if (!ok) return;
+    }
     try {
       setIsSelecting(true);
       setLoadingModelPath(modelPath);
@@ -174,7 +186,18 @@ export default function RagModelSelector({
         );
       }
       setSelectedPath(modelPath);
-      showNotification('success', 'Модель RAG успешно загружена');
+      const migrated = Boolean(data?.schema?.migrated);
+      const cleared = Number(data?.schema?.cleared_rows || 0);
+      if (kind === 'embedding' && migrated) {
+        showNotification(
+          'warning',
+          cleared > 0
+            ? `Модель загружена (dim=${data?.embedding_dim ?? '?'}). Старые векторы очищены — загрузите документы заново.`
+            : `Модель загружена. Схема БД обновлена под dim=${data?.embedding_dim ?? '?'}.`,
+        );
+      } else {
+        showNotification('success', 'Модель RAG успешно загружена');
+      }
       handleClose();
       onModelSelect?.(modelPath);
       await loadModels();
@@ -255,7 +278,7 @@ export default function RagModelSelector({
     return (
       <Typography sx={{ fontSize: MENU_ACTION_TEXT_SIZE, color: subtleColor }}>
         Модели {kind === 'embedding' ? 'эмбеддингов' : 'cross-encoder'} недоступны
-        {offline ? ' (офлайн-режим)' : ''}
+        {offline ? ' (только локальные модели)' : ''}
       </Typography>
     );
   }

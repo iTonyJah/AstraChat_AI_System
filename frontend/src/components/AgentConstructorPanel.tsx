@@ -42,6 +42,7 @@ import {
   Settings as SettingsIcon,
   History as VersionIcon,
   Save as SaveIcon,
+  Share as ShareIcon,
   Description as FileIcon,
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
@@ -53,7 +54,7 @@ import {
   CheckBoxOutlineBlank as CheckBoxBlankIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { getApiUrl, API_ENDPOINTS } from '../config/api';
+import { getApiUrl, API_ENDPOINTS, getAuthFetchHeaders } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppActions } from '../contexts/AppContext';
 import { applyAgentModelAndSettings } from '../utils/applyAgentServer';
@@ -69,6 +70,7 @@ import {
 } from '../constants/menuStyles';
 import ModelParametersModal, { type ModelParamsState } from './ModelParametersModal';
 import { MODEL_SETTINGS_DEFAULT, type ModelSettingsState } from '../constants/modelSettingsStyles';
+import ShareAgentDialog from './ShareAgentDialog';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +93,16 @@ interface Agent {
   author_name: string;
   is_public: boolean;
   tags?: any[];
+  my_permission?: 'owner' | 'editor' | 'viewer' | null;
+  is_shared_with_me?: boolean;
+}
+
+interface ProviderModelItem {
+  name: string;
+  path: string;
+  display_name?: string;
+  provider_id?: string;
+  llm_host_id?: string;
 }
 
 interface AgentConstructorPanelProps {
@@ -221,6 +233,9 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
   const [instructions, setInstructions] = useState('');
   const [model, setModel] = useState('');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  /** Каталог моделей с провайдером (id из config, напр. local) для выбора провайдер→модель. */
+  const [providerModels, setProviderModels] = useState<ProviderModelItem[]>([]);
+  const [providerIds, setProviderIds] = useState<string[]>([]);
 
   // Capabilities
   const [codeInterpreter, setCodeInterpreter] = useState(false);
@@ -253,6 +268,7 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
   const [agentSearchQuery, setAgentSearchQuery] = useState('');
   const [agentPopoverAnchor, setAgentPopoverAnchor] = useState<HTMLElement | null>(null);
   const [categoryPopoverAnchor, setCategoryPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const kbFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -261,13 +277,21 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
   const loadAgents = useCallback(async () => {
     setIsLoadingAgents(true);
     try {
-      const url = getApiUrl('/api/agents/my/agents');
-      const resp = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!resp.ok) return;
-      const data = await resp.json();
-      setAgents(data.agents || []);
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const [mineResp, sharedResp] = await Promise.all([
+        fetch(getApiUrl('/api/agents/my/agents'), { headers }),
+        fetch(getApiUrl('/api/agents/my/shared'), { headers }),
+      ]);
+      const mine: Agent[] = mineResp.ok ? ((await mineResp.json()).agents || []) : [];
+      const shared: Agent[] = sharedResp.ok
+        ? ((await sharedResp.json()).agents || []).map((a: Agent) => ({ ...a, is_shared_with_me: true }))
+        : [];
+      const byId = new Map<number, Agent>();
+      for (const a of mine) byId.set(a.id, { ...a, my_permission: a.my_permission || 'owner' });
+      for (const a of shared) {
+        if (!byId.has(a.id)) byId.set(a.id, a);
+      }
+      setAgents(Array.from(byId.values()));
     } catch (e) {
       // silent
     } finally {
@@ -277,14 +301,36 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
 
   const loadModels = useCallback(async () => {
     try {
-      const url = getApiUrl('/api/models');
-      const resp = await fetch(url);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      const names: string[] = (data.models || data || []).map((m: any) =>
-        typeof m === 'string' ? m : m.name || m.path || ''
-      ).filter(Boolean);
-      setAvailableModels(names);
+      const [catalogResp, providersResp] = await Promise.all([
+        fetch(getApiUrl('/api/models/available')),
+        fetch(getApiUrl('/api/llm-providers?include_health=false')),
+      ]);
+      if (catalogResp.ok) {
+        const data = await catalogResp.json();
+        const items: ProviderModelItem[] = (data.models || data || [])
+          .map((m: any) =>
+            typeof m === 'string'
+              ? { name: m, path: m }
+              : {
+                  name: m.name || m.model_id || m.path || '',
+                  path: m.path || m.name || '',
+                  display_name: m.display_name,
+                  provider_id: m.provider_id || m.llm_host_id,
+                  llm_host_id: m.llm_host_id,
+                },
+          )
+          .filter((m: ProviderModelItem) => m.path);
+        setProviderModels(items);
+        // Плоский список путей — совместимость с ModelParametersModal
+        setAvailableModels(items.map((m) => m.path));
+      }
+      if (providersResp.ok) {
+        const pdata = await providersResp.json();
+        const ids: string[] = (pdata.providers || [])
+          .map((p: any) => (p?.id || '').toString().trim())
+          .filter(Boolean);
+        setProviderIds(ids);
+      }
     } catch (e) {
       // silent
     }
@@ -294,10 +340,20 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
     setIsLoadingKb(true);
     try {
       const url = getApiUrl(API_ENDPOINTS.KB_DOCUMENTS_LIST);
-      const resp = await fetch(url);
+      const resp = await fetch(url, { headers: getAuthFetchHeaders() });
       if (!resp.ok) return;
       const data = await resp.json();
-      setKbDocuments(data.documents || data || []);
+      const raw = (data.documents || data || []) as Array<Record<string, unknown>>;
+      // Нормализуем id → number, иначе includes() после upload может не совпасть.
+      setKbDocuments(
+        raw.map(d => ({
+          id: Number(d.id),
+          filename: String(d.filename ?? ''),
+          size: d.size != null ? Number(d.size) : null,
+          file_type: d.file_type != null ? String(d.file_type) : null,
+          created_at: d.created_at != null ? String(d.created_at) : null,
+        })).filter(d => Number.isFinite(d.id)),
+      );
     } catch (e) {
       // silent
     } finally {
@@ -371,27 +427,53 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
   // ─── KB Upload ───────────────────────────────────────────────────────────────
 
   const handleKbUpload = async (files: FileList) => {
-    if (!fileSearchEnabled) {
-      showNotification('info', 'Сначала включите чекбокс «Включить поиск файлов».');
-      return;
-    }
     if (!files.length) return;
+    // Загрузка в KB агента = поиск по файлам; включаем флаг автоматически.
+    if (!fileSearchEnabled) setFileSearchEnabled(true);
     setIsUploadingKb(true);
     const uploadedIds: number[] = [];
+    const errors: string[] = [];
+    const chunkingStrategy =
+      (typeof localStorage !== 'undefined' && localStorage.getItem('rag_chunking_strategy')) ||
+      'hierarchical';
     for (const file of Array.from(files)) {
       const formData = new FormData();
       formData.append('file', file);
+      // Agent KB: применяем стратегию чанкования из настроек RAG
+      formData.append('chunking_strategy', chunkingStrategy);
       try {
         const url = getApiUrl(API_ENDPOINTS.KB_DOCUMENTS_UPLOAD);
-        const resp = await fetch(url, { method: 'POST', body: formData });
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: getAuthFetchHeaders(),
+          body: formData,
+        });
         const data = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
+        if (!resp.ok) {
+          const detail = data.detail ?? data.error ?? resp.statusText;
+          errors.push(`${file.name}: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
+          continue;
+        }
         const docId = Number(data.document_id ?? data.id);
-        if (Number.isFinite(docId)) uploadedIds.push(docId);
-      } catch (e) { /* silent */ }
+        if (Number.isFinite(docId)) {
+          uploadedIds.push(docId);
+        } else {
+          errors.push(`${file.name}: сервер не вернул document_id`);
+        }
+      } catch (e) {
+        errors.push(`${file.name}: ${e instanceof Error ? e.message : 'ошибка сети'}`);
+      }
     }
     setIsUploadingKb(false);
     if (uploadedIds.length) {
       setKbDocumentIds(prev => Array.from(new Set([...prev, ...uploadedIds])));
+      showNotification(
+        'success',
+        `Загружено файлов: ${uploadedIds.length}. Сохраните агента, чтобы привязка сохранилась.`,
+      );
+    }
+    if (errors.length) {
+      showNotification('error', errors.slice(0, 3).join('; '));
     }
     await loadKbDocuments();
   };
@@ -425,8 +507,19 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
       ],
       config: {
         category,
-        model: model.replace(/^1lm-svc:\/\//i, 'llm-svc://').replace(/\s+/g, ''),
-        model_params: modelParams,
+        // Модель всегда в формате <provider_id>/<model_id>; локальный провайдер — id «local»
+        model: (() => {
+          let m = model.replace(/^1lm-svc:\/\//i, 'llm-svc://').replace(/\s+/g, '');
+          if (m && !m.startsWith('llm-svc://') && !m.includes('/') && !m.toLowerCase().endsWith('.gguf')) {
+            m = `local/${m}`;
+          }
+          return m;
+        })(),
+        model_params: {
+          ...modelParams,
+          // Провайдер в params — сырой id из /api/llm-providers (local, …)
+          provider: (modelParams as any)?.provider || (model.includes('/') ? model.split('/')[0] : 'local'),
+        },
         model_settings: agentModelSettings,
         code_interpreter: codeInterpreter,
         web_search: webSearch,
@@ -538,6 +631,14 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
     : '';
   const selectedKbDocuments = kbDocuments.filter(doc => kbDocumentIds.includes(doc.id));
 
+  // ─── Роль текущего пользователя для выбранного агента ────────────────────────
+  const selectedAgent = selectedAgentId !== 'new' ? agents.find(a => a.id === selectedAgentId) : null;
+  const selectedRole: 'owner' | 'editor' | 'viewer' =
+    selectedAgentId === 'new' ? 'owner' : (selectedAgent?.my_permission || 'owner');
+  const readOnly = selectedRole === 'viewer';
+  const canEdit = selectedRole === 'owner' || selectedRole === 'editor';
+  const isOwner = selectedRole === 'owner';
+
   return (
     <Box
       sx={{
@@ -555,6 +656,8 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
           onClose={() => setShowModelParamsPanel(false)}
           currentModel={model}
           availableModels={availableModels}
+          providerModels={providerModels}
+          providerIds={providerIds}
           initialParams={Object.keys(modelParams).length ? modelParams : undefined}
           initialModelSettings={agentModelSettings}
           onSaveModelSettings={setAgentModelSettings}
@@ -672,6 +775,28 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
         </Popover>
       </Box>
 
+      {/* Баннер роли для чужого агента */}
+      {selectedAgentId !== 'new' && !isOwner && (
+        <Box
+          sx={{
+            mx: 2,
+            mb: 1,
+            px: 1.25,
+            py: 0.75,
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: readOnly ? 'rgba(100,181,246,0.35)' : 'rgba(102,187,106,0.35)',
+            bgcolor: readOnly ? 'rgba(100,181,246,0.08)' : 'rgba(102,187,106,0.08)',
+          }}
+        >
+          <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.75)' }}>
+            {readOnly
+              ? 'Общий агент · роль «Зритель» — только просмотр и использование, изменение недоступно.'
+              : 'Общий агент · роль «Редактор» — можно изменять; удаление и повторный шаринг доступны только владельцу.'}
+          </Typography>
+        </Box>
+      )}
+
       {/* ── Scrollable form ─────────────────────────────────────────────────── */}
       <Box
         sx={{
@@ -682,6 +807,8 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
           display: 'flex',
           flexDirection: 'column',
           gap: 1.5,
+          ...(readOnly ? { opacity: 0.75 } : {}),
+          ...(readOnly ? { '& > *': { pointerEvents: 'none' } } : {}),
           ...SIDEBAR_HIDE_SCROLLBAR_SX,
         }}
       >
@@ -919,20 +1046,22 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
             />
           </Box>
 
-          {/* File context */}
+          {/* File context — тот же KB upload, что и «Поиск файлов» */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.72rem' }}>
                 Контекст файла
               </Typography>
-              <Tooltip title="Файл, доступный агенту как постоянный контекст" arrow>
+              <Tooltip title="Файл индексируется в Базу Знаний агента и доступен через поиск по файлам. После загрузки сохраните агента." arrow>
                 <HelpIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }} />
               </Tooltip>
             </Box>
             <Button
               size="small"
-              startIcon={<AttachIcon sx={{ fontSize: '0.85rem !important' }} />}
+              startIcon={isUploadingKb ? <CircularProgress size={13} sx={{ color: 'inherit' }} /> : <AttachIcon sx={{ fontSize: '0.85rem !important' }} />}
               fullWidth
+              disabled={isUploadingKb || readOnly}
+              onClick={() => kbFileInputRef.current?.click()}
               sx={{
                 fontSize: '0.72rem',
                 textTransform: 'none',
@@ -941,9 +1070,10 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
                 py: 0.75,
                 justifyContent: 'flex-start',
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.35)' },
+                '&:disabled': { color: 'rgba(255,255,255,0.3)', borderColor: 'rgba(255,255,255,0.1)' },
               }}
             >
-              Загрузить файл контекста
+              {isUploadingKb ? 'Загрузка...' : 'Загрузить файл контекста'}
             </Button>
           </Box>
         </Box>
@@ -1118,7 +1248,7 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
               ref={kbFileInputRef}
               type="file"
               multiple
-              accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.csv"
+              accept=".pdf,.docx,.doc,.docm,.xlsx,.xls,.xlsm,.txt,.csv,.md,.log,.rtf"
               style={{ display: 'none' }}
               onChange={e => { if (e.target.files) handleKbUpload(e.target.files); e.target.value = ''; }}
             />
@@ -1126,11 +1256,8 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
               size="small"
               startIcon={isUploadingKb ? <CircularProgress size={13} sx={{ color: 'inherit' }} /> : <UploadIcon sx={{ fontSize: '0.85rem !important' }} />}
               fullWidth
-              disabled={isUploadingKb || !fileSearchEnabled}
-              onClick={() => {
-                if (!fileSearchEnabled) return;
-                kbFileInputRef.current?.click();
-              }}
+              disabled={isUploadingKb || readOnly}
+              onClick={() => kbFileInputRef.current?.click()}
               sx={{
                 mt: 0.5,
                 fontSize: '0.72rem',
@@ -1275,9 +1402,26 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
           </Button>
         </Box>
 
-        {/* Delete + Save */}
+        {/* Share + Delete + Save */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {selectedAgentId !== 'new' && (
+          {selectedAgentId !== 'new' && isOwner && (
+            <Tooltip title="Поделиться агентом">
+              <IconButton
+                size="small"
+                onClick={() => setShareDialogOpen(true)}
+                sx={{
+                  color: 'rgba(255,255,255,0.4)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: 1,
+                  p: 0.75,
+                  '&:hover': { color: '#64b5f6', borderColor: 'rgba(100,181,246,0.4)', bgcolor: 'rgba(100,181,246,0.08)' },
+                }}
+              >
+                <ShareIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          {selectedAgentId !== 'new' && isOwner && (
             <Tooltip title="Удалить агента">
               <IconButton
                 size="small"
@@ -1294,27 +1438,57 @@ export default function AgentConstructorPanel({ isDarkMode, isOpen }: AgentConst
               </IconButton>
             </Tooltip>
           )}
-          <Button
-            fullWidth
-            variant="contained"
-            startIcon={isSaving ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <SaveIcon sx={{ fontSize: '0.9rem !important' }} />}
-            onClick={handleSave}
-            disabled={isSaving}
-            sx={{
-              bgcolor: '#2e7d32',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              py: 0.9,
-              '&:hover': { bgcolor: '#388e3c' },
-              '&:disabled': { bgcolor: 'rgba(46,125,50,0.4)', color: 'rgba(255,255,255,0.5)' },
-            }}
-          >
-            {isSaving ? 'Сохраняю...' : 'Сохранить'}
-          </Button>
+          {canEdit ? (
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={isSaving ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <SaveIcon sx={{ fontSize: '0.9rem !important' }} />}
+              onClick={handleSave}
+              disabled={isSaving}
+              sx={{
+                bgcolor: '#2e7d32',
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                py: 0.9,
+                '&:hover': { bgcolor: '#388e3c' },
+                '&:disabled': { bgcolor: 'rgba(46,125,50,0.4)', color: 'rgba(255,255,255,0.5)' },
+              }}
+            >
+              {isSaving ? 'Сохраняю...' : 'Сохранить'}
+            </Button>
+          ) : (
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<AgentIcon sx={{ fontSize: '0.9rem !important' }} />}
+              onClick={handleUseAgent}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                py: 0.9,
+                color: 'rgba(255,255,255,0.85)',
+                borderColor: 'rgba(255,255,255,0.25)',
+                '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.06)' },
+              }}
+            >
+              Использовать в чате
+            </Button>
+          )}
         </Box>
       </Box>
         </>
+      )}
+
+      {selectedAgentId !== 'new' && (
+        <ShareAgentDialog
+          open={shareDialogOpen}
+          onClose={() => setShareDialogOpen(false)}
+          agentId={typeof selectedAgentId === 'number' ? selectedAgentId : 0}
+          agentName={agents.find((a) => a.id === selectedAgentId)?.name || name || 'Агент'}
+          isDarkMode={isDarkMode}
+        />
       )}
     </Box>
   );

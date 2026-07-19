@@ -5,20 +5,30 @@ routes/models.py - управление моделями
 import asyncio
 import os
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 import backend.app_state as state
 from backend.app_state import (
-    model_settings, update_model_settings, reload_model_by_path,
+    model_settings, update_model_settings,
     get_model_info, get_current_model_path, save_app_settings, load_app_settings,
 )
+from backend.auth.jwt_handler import get_current_user
 from backend.schemas import ModelSettings, ModelLoadRequest, ModelLoadResponse
+from backend.services.user_llm_settings import (
+    get_user_model_settings,
+    reset_user_model_settings,
+    save_user_model_settings,
+)
 from backend.settings.logging import get_logger
 
 router = APIRouter(prefix="/api/models", tags=["models"])
 logger = get_logger(__name__)
+
+
+def _uid(current_user: dict) -> str:
+    return str(current_user.get("user_id") or current_user.get("username") or "").strip()
 
 
 @router.get("/current")
@@ -120,57 +130,86 @@ async def get_available_models():
 
 @router.post("/load", response_model=ModelLoadResponse)
 async def load_model(request: ModelLoadRequest):
-    if not reload_model_by_path:
-        return ModelLoadResponse(message="Функция загрузки модели недоступна", success=False)
-    try:
-        if os.path.isdir(request.model_path):
-            return ModelLoadResponse(message=f"Передан путь к директории: {request.model_path}", success=False)
+    """Загрузка весов модели.
 
-        success = reload_model_by_path(request.model_path)
-        if success:
-            name = request.model_path.replace("llm-svc://", "") if request.model_path.startswith("llm-svc://") else os.path.basename(request.model_path)
-            save_app_settings({"current_model_path": request.model_path, "current_model_name": name, "current_model_status": "loaded"})
-            return ModelLoadResponse(message="Модель успешно загружена", success=True)
-        return ModelLoadResponse(message="Не удалось загрузить модель", success=False)
+    Ответ (и снятие UI-спиннера) — только после реального ensure_model_loaded.
+    Без sync/to_thread/asyncio.run: иначе ответ может «залипнуть» после успеха в логах.
+    """
+    model_path = (request.model_path or "").strip()
+    if not model_path:
+        return ModelLoadResponse(message="model_path пуст", success=False)
+    if os.path.isdir(model_path):
+        return ModelLoadResponse(message=f"Передан путь к директории: {model_path}", success=False)
+
+    try:
+        from backend.llm_providers import get_registry
+
+        registry = await get_registry()
+        provider, model_id = registry.resolve(model_path)
+        if not model_id:
+            # Пришёл только id провайдера — берём первую доступную модель.
+            if registry.contains(model_path):
+                provider = registry.get(model_path)
+                candidates = await provider.list_models()
+                model_id = str((candidates[0].model_id if candidates else "") or "").strip()
+            if not model_id:
+                return ModelLoadResponse(message="Не удалось определить model_id", success=False)
+
+        ok = await provider.ensure_model_loaded(model_id)
+        if not ok:
+            return ModelLoadResponse(message="Не удалось загрузить модель", success=False)
+
+        selected = f"{provider.id}/{model_id}"
+        try:
+            from backend import agent_llm_svc
+
+            agent_llm_svc._selected_model_name = selected
+        except Exception:
+            pass
+
+        save_app_settings(
+            {
+                "current_model_path": selected,
+                "current_model_name": model_id,
+                "current_model_status": "loaded",
+            }
+        )
+        logger.info("POST /api/models/load OK: %s", selected)
+        return ModelLoadResponse(message="Модель успешно загружена", success=True)
     except Exception as e:
+        logger.exception("POST /api/models/load error")
         return ModelLoadResponse(message=f"Ошибка: {str(e)}", success=False)
 
 
 @router.get("/settings")
-async def get_model_settings():
-    defaults = {"context_size": 2048, "output_tokens": 512, "temperature": 0.7, "top_p": 0.95,
-                "repeat_penalty": 1.05, "top_k": 40, "min_p": 0.05, "frequency_penalty": 0.0,
-                "presence_penalty": 0.0, "use_gpu": False, "streaming": True, "streaming_speed": 20}
-    if not model_settings:
-        return defaults
+async def get_model_settings(current_user: Annotated[dict, Depends(get_current_user)]):
     try:
-        return model_settings.get_all()
-    except Exception as e:
-        logger.error(f"model_settings.get_all error: {e}")
-        return defaults
+        return await get_user_model_settings(_uid(current_user))
+    except Exception:
+        logger.exception("get_user_model_settings error")
+        return await get_user_model_settings(None)
 
 
 @router.put("/settings")
-async def update_model_settings_api(settings_data: ModelSettings):
-    if not update_model_settings:
-        raise HTTPException(status_code=503, detail="AI agent не доступен")
+async def update_model_settings_api(
+    settings_data: ModelSettings, current_user: Annotated[dict, Depends(get_current_user)]
+):
     try:
-        if update_model_settings(settings_data.dict()):
-            return {"message": "Настройки обновлены", "success": True}
-        raise HTTPException(status_code=400, detail="Не удалось обновить настройки")
+        saved = await save_user_model_settings(_uid(current_user), settings_data.dict())
+        return {"message": "Настройки обновлены", "success": True, "settings": saved}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Ошибка операции")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/settings/reset")
-async def reset_model_settings():
-    if not model_settings:
-        raise HTTPException(status_code=503, detail="AI agent не доступен")
+async def reset_model_settings(current_user: Annotated[dict, Depends(get_current_user)]):
     try:
-        model_settings.reset_to_defaults()
-        return {"message": "Настройки сброшены", "success": True, "settings": model_settings.get_all()}
+        settings = await reset_user_model_settings(_uid(current_user))
+        return {"message": "Настройки сброшены", "success": True, "settings": settings}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Ошибка операции")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/settings/recommended")
