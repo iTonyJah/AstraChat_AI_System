@@ -642,22 +642,18 @@ const MessageCardComponent = ({
       !assistantInlineAttachments?.length,
   );
   const isReasoningStreaming = useMemo(() => {
-    // В текущем потоке reasoning часто приходит уже в закрытом <think>...</think>,
-    // поэтому одного parsedMessage.isThinkingStreaming недостаточно.
-    // Считаем, что модель "думает", если:
-    // 1) сообщение всё ещё стримится,
-    // 2) блок reasoning уже есть,
-    // 3) основной ответ ещё не начал наполняться.
+    if (message.isImageGenerating) return false;
+    // Пока сообщение стримится и есть блок рассуждений — держим «Думает» над ответом.
+    // Не ждём пустого visibleContent: иначе после первых токенов ответа заголовок
+    // пропадает/меняется, и кажется, что «Думает» оказалось «под» ответом.
     return Boolean(
       parsedMessage.isThinkingStreaming ||
-      (message.isStreaming &&
-        Boolean(parsedMessage.reasoningContent) &&
-        parsedMessage.visibleContent.trim().length === 0),
+        (message.isStreaming && Boolean(parsedMessage.reasoningContent)),
     );
   }, [
+    message.isImageGenerating,
     parsedMessage.isThinkingStreaming,
     parsedMessage.reasoningContent,
-    parsedMessage.visibleContent,
     message.isStreaming,
   ]);
 
@@ -886,9 +882,7 @@ const MessageCardComponent = ({
               const parsedResponse = extractReasoningBlock(displayBody, response.isStreaming);
               const isResponseReasoningStreaming = Boolean(
                 parsedResponse.isThinkingStreaming ||
-                  (response.isStreaming &&
-                    Boolean(parsedResponse.reasoningContent) &&
-                    parsedResponse.visibleContent.trim().length === 0),
+                  (response.isStreaming && Boolean(parsedResponse.reasoningContent)),
               );
               return (
                 <Card
@@ -1861,6 +1855,8 @@ export default function UnifiedChatPage({
   const chatAwaitingTokens = useMemo(() => {
     if (!currentChatLoading || hasRunningMcpTools) return false;
     if (!lastStreamingAssistant) return true;
+    // Генерация картинки: в пузыре уже ImageGenerationPlaceholder — не дублируем «думает...»
+    if (lastStreamingAssistant.isImageGenerating) return false;
     const parsed = extractReasoningBlock(lastStreamingAssistant.content || '', true);
     if (parsed.reasoningContent?.trim()) return false;
     if (parsed.visibleContent.trim()) return false;
@@ -1897,9 +1893,17 @@ export default function UnifiedChatPage({
     if (isMultiLlmMode && !multiLlmHasSelection) {
       return 'Выберите модели для сравнения (до 4, хотя бы одну)';
     }
+    if (lastStreamingAssistant?.isImageGenerating) return 'Генерация изображения…';
     if (chatAwaitingTokens) return 'astrachat думает...';
     return 'Чем я могу помочь вам сегодня?';
-  }, [isConnected, isConnecting, isMultiLlmMode, multiLlmHasSelection, chatAwaitingTokens]);
+  }, [
+    isConnected,
+    isConnecting,
+    isMultiLlmMode,
+    multiLlmHasSelection,
+    chatAwaitingTokens,
+    lastStreamingAssistant?.isImageGenerating,
+  ]);
   const socketBlocksChatInput = !isConnected && !isConnecting && !token;
   const prevAgentModeRef = useRef<string | undefined>(undefined);
   const skipNextMultiLlmChatResetRef = useRef(false);
@@ -2755,12 +2759,12 @@ export default function UnifiedChatPage({
     // Добавляем пустое место для нового ответа (будет заполнено при генерации)
     const updatedAlternatives = [...existingAlternatives, ''];
     
-    // Обновляем сообщение с альтернативными ответами и новым индексом
-    // Не обнуляем content, оставляем текущий
+    // Обнуляем content: иначе при перегенерации может мелькать старый ответ,
+    // а UI для нового варианта берёт alternativeResponses[newIndex] (пусто → thinking).
     updateMessage(
       currentChat.id,
       message.id,
-      currentContent, // Оставляем текущий контент, не обнуляем
+      '',
       true, // isStreaming - начинаем стриминг
       undefined, // multiLLMResponses
       updatedAlternatives,
@@ -4170,10 +4174,14 @@ export default function UnifiedChatPage({
                   !message.content.trim() &&
                   !message.mcpToolCalls?.length &&
                   !message.multiLLMResponses?.length &&
-                  !message.documentSearch;
+                  !message.documentSearch &&
+                  !message.isImageGenerating &&
+                  !message.inlineAttachments?.length;
                 const parsedAssistant = isEmptyAssistantPlaceholder
                   ? extractReasoningBlock(message.content || '', message.isStreaming)
                   : null;
+                // Прячем пустой пузырь только пока ждём обычный LLM-стрим («думает...» снизу).
+                // Сообщение с isImageGenerating содержит ImageGenerationPlaceholder — его нельзя выкидывать.
                 if (
                   isEmptyAssistantPlaceholder &&
                   currentChatLoading &&
