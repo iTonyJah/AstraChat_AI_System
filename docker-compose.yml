@@ -151,6 +151,13 @@ services:
       - LLM_SVC_TIMEOUT=${LLM_SVC_TIMEOUT:-300}
       - LLM_SVC_RETRY_ATTEMPTS=${LLM_SVC_RETRY_ATTEMPTS:-3}
       - LLM_SVC_RETRY_DELAY=${LLM_SVC_RETRY_DELAY:-1}
+      # ✨ ДОБАВЬ ЭТИ СТРОКИ (для внешней ллм АлиБабы):
+      - LLM_PROVIDER_DASHSCOPE_KIND=${LLM_PROVIDER_DASHSCOPE_KIND:-openai-compat}
+      - LLM_PROVIDER_DASHSCOPE_BASE_URL=${LLM_PROVIDER_DASHSCOPE_BASE_URL:-}
+      - LLM_PROVIDER_DASHSCOPE_API_KEY=${LLM_PROVIDER_DASHSCOPE_API_KEY:-}
+      - LLM_PROVIDER_DASHSCOPE_ENABLED=${LLM_PROVIDER_DASHSCOPE_ENABLED:-false}
+      - LLM_PROVIDER_DASHSCOPE_STATIC_MODEL=${LLM_PROVIDER_DASHSCOPE_STATIC_MODEL:-qwen-flash}
+      - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-}
       # JWT / auth (backend/auth/jwt_handler.py)
       - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
@@ -160,11 +167,18 @@ services:
       - AUTH_SESSION_TIMEOUT_SECONDS=${AUTH_SESSION_TIMEOUT_SECONDS:-0}
       - LDAP_ENABLED=${LDAP_ENABLED:-false}
       # Новые адреса микросервисов (используются backend/config/config.py и backend/llm_client.py)
-      - SVC_LLM_URL=http://llm-service:8000
-      - SVC_STT_URL=http://stt-service:8000
-      - SVC_TTS_URL=http://tts-service:8000
-      - SVC_OCR_URL=http://ocr-service:8000
-      - SVC_DIARIZATION_URL=http://diarization-service:8000
+      # - SVC_LLM_URL=http://llm-service:8000
+      # - SVC_STT_URL=http://stt-service:8000
+      # - SVC_TTS_URL=http://tts-service:8000
+      # - SVC_OCR_URL=http://ocr-service:8000
+      # - SVC_DIARIZATION_URL=http://diarization-service:8000
+      # ... другие переменные ...
+      - SVC_LLM_URL=${SVC_LLM_URL:-}
+      - SVC_STT_URL=${SVC_STT_URL:-}
+      - SVC_TTS_URL=${SVC_TTS_URL:-}
+      - SVC_OCR_URL=${SVC_OCR_URL:-}
+      - SVC_DIARIZATION_URL=${SVC_DIARIZATION_URL:-}
+      # ...
       - DOCKER_ENV=${DOCKER_ENV:-true}
       - CONFIG_PATH=${CONFIG_PATH}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}

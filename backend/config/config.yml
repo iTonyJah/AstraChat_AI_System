@@ -64,15 +64,17 @@ mcp:
     - id: websearch
       display_name: "Поиск в интернете"
       enabled: true
-      transport: stdio
-      command: npx
-      args:
-        - "-y"
-        - "open-websearch@latest"
-      env:
-        MODE: stdio
-        DEFAULT_SEARCH_ENGINE: duckduckgo
-        ALLOWED_SEARCH_ENGINES: duckduckgo,bing,exa,brave
+      transport: streamable-http
+      base_url: "http://mcp-websearch:3000"
+      # строки command:, args:, env: — они нужны только для stdio
+      # command: npx
+      # args:
+      #   - "-y"
+      #   - "open-websearch@latest"
+      # env:
+      #   MODE: stdio
+      #   DEFAULT_SEARCH_ENGINE: duckduckgo
+      #   ALLOWED_SEARCH_ENGINES: duckduckgo,bing,exa,brave
       timeout_seconds: 180
       tool_name_prefix: mcp_websearch_
       auth_mode: service_account
@@ -324,3 +326,17 @@ urls:
   # MCP Open-WebSearch (8013 — веб-поиск для LLM)
   mcp_websearch_service_port: "http://localhost:8013"
   mcp_websearch_service_docker: "http://mcp-websearch:3000"
+
+llm_providers:
+  - id: "DASHSCOPE"
+    kind: "openai-compat"
+    base_url: "https://ws-jcvu5jctl27w30kh.ap-southeast-1.maas.aliyuncs.com/compatible-mode"
+    api_key_env: "LLM_PROVIDER_DASHSCOPE_API_KEY"
+    enabled: true
+    static_model: "qwen-flash"
+    timeout: 300
+    extra:
+      function_calling: true
+      vision: false
+
+default_llm_provider: "DASHSCOPE"
