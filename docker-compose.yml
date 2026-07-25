@@ -231,8 +231,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      mcp-powerpoint:          # <--- ДОБАВИТЬ ЭТУ СТРОКУ
-        condition: service_started # <--- И ЭТУ
+      mcp-websearch:
+        condition: service_started
+      mcp-powerpoint:
+        condition: service_started
     restart: unless-stopped
     networks:
       - astrachat-network

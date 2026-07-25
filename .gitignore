@@ -26,3 +26,16 @@ venv/
 .venv/
 huggingface/
 torch/
+
+# MCP PowerPoint outputs
+assets/pptx_output/
+*.pptx
+presentation.pdf
+
+# Docker volumes
+/assets/
+/output/
+
+# Logs
+*.log
+logs/

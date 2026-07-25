@@ -86,9 +86,9 @@ mcp:
       display_name: "Генерация презентаций (.pptx)"
       enabled: true
       transport: streamable-http
-      base_url: "http://mcp-pptx:8000"
+      base_url: "http://mcp-powerpoint:8000"
       base_path: /mcp
-      health_path: /healthz
+      health_path: /health
       stateless: true
       timeout_seconds: 300
       tool_name_prefix: mcp_pptx_

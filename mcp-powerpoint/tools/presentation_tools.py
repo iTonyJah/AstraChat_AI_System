@@ -125,27 +125,68 @@ def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_p
         ),
     )
     def save_presentation(file_path: str, presentation_id: Optional[str] = None) -> Dict:
-        """Save a presentation to a file."""
+        """Save a presentation to a file.
+        
+        Args:
+            file_path: Путь для сохранения файла. 
+                    - Относительные пути (например, "presentation.pptx") автоматически сохраняются в /output/
+                    - Абсолютные пути (например, "/output/my_presentation.pptx") используются как есть
+            presentation_id: ID презентации для сохранения (опционально)
+        
+        Returns:
+            Dict с информацией о сохранённом файле
+        """
         # Use the specified presentation or the current one
         pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
         if pres_id is None or pres_id not in presentations:
             return {
                 "error": "No presentation is currently loaded or the specified ID is invalid"
             }
         
+        # АВТОМАТИЧЕСКОЕ ПРЕОБРАЗОВАНИЕ ПУТЕЙ:
+        # Если путь относительный (не начинается с /), добавляем префикс /output/
+        if not file_path.startswith('/'):
+            file_path = f"/output/{file_path}"
+        
+        # Создаём директории, если их нет
+        output_dir = os.path.dirname(file_path)
+        if output_dir and not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+            except Exception as e:
+                return {
+                    "error": f"Failed to create directory {output_dir}: {str(e)}"
+                }
+        
+        # Проверяем права доступа
+        if not os.access(output_dir, os.W_OK):
+            return {
+                "error": f"No write permission for directory: {output_dir}"
+            }
+        
         # Save the presentation
         try:
             saved_path = ppt_utils.save_presentation(presentations[pres_id], file_path)
+            
+            # Формируем путь на хост-машине для удобства пользователя
+            host_path = saved_path
+            if saved_path.startswith('/output/'):
+                # Преобразуем /output/filename.pptx в ./assets/pptx_output/filename.pptx
+                relative_path = saved_path.replace('/output/', '', 1)
+                host_path = f"./assets/pptx_output/{relative_path}"
+            
             return {
-                "message": f"Presentation saved to {saved_path}",
-                "file_path": saved_path
+                "message": f"Presentation saved successfully!",
+                "file_path": saved_path,
+                "host_path": host_path,
+                "file_size": os.path.getsize(saved_path) if os.path.exists(saved_path) else None,
+                "instructions": f"Файл доступен на хост-машине: {host_path}"
             }
         except Exception as e:
             return {
                 "error": f"Failed to save presentation: {str(e)}"
             }
-
+    
     @app.tool(
         annotations=ToolAnnotations(
             title="Get Presentation Info",
@@ -243,3 +284,76 @@ def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_p
             return {
                 "error": f"Failed to set core properties: {str(e)}"
             }
+
+
+    @app.tool(
+        annotations=ToolAnnotations(
+            title="List Saved Presentations",
+            readOnlyHint=True,
+        ),
+    )
+    def list_saved_presentations() -> Dict:
+        """List all presentation files saved in /output directory."""
+        output_dir = "/output"
+        
+        if not os.path.exists(output_dir):
+            return {
+                "message": "Output directory does not exist",
+                "files": []
+            }
+        
+        files = []
+        for filename in os.listdir(output_dir):
+            file_path = os.path.join(output_dir, filename)
+            if os.path.isfile(file_path):
+                stat = os.stat(file_path)
+                files.append({
+                    "filename": filename,
+                    "path": file_path,
+                    "host_path": f"./assets/pptx_output/{filename}",
+                    "size_bytes": stat.st_size,
+                    "size_kb": round(stat.st_size / 1024, 2),
+                    "modified": stat.st_mtime
+                })
+        
+        # Сортируем по времени изменения (новые первыми)
+        files.sort(key=lambda x: x["modified"], reverse=True)
+        
+        return {
+            "message": f"Found {len(files)} saved presentation(s)",
+            "files": files,
+            "total_size_kb": round(sum(f["size_kb"] for f in files), 2)
+        }
+
+
+    @app.tool(
+        annotations=ToolAnnotations(
+            title="Delete Saved Presentation",
+            destructiveHint=True,
+        ),
+    )
+    def delete_saved_presentation(filename: str) -> Dict:
+        """Delete a saved presentation file from /output directory.
+        
+        Args:
+            filename: Имя файла для удаления (например, "presentation.pptx")
+        """
+        file_path = f"/output/{filename}"
+        
+        if not os.path.exists(file_path):
+            return {
+                "error": f"File not found: {file_path}"
+            }
+        
+        try:
+            os.remove(file_path)
+            return {
+                "message": f"Successfully deleted: {filename}",
+                "deleted_file": file_path,
+                "host_path": f"./assets/pptx_output/{filename}"
+            }
+        except Exception as e:
+            return {
+                "error": f"Failed to delete file: {str(e)}"
+            }
+            
