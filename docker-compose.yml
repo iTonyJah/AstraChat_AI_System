@@ -423,6 +423,7 @@ services:
       context: ./mcp-powerpoint
       dockerfile: Dockerfile
     container_name: astrachat-mcp-powerpoint
+    user: "root"                               # <--- ДОБАВЬТЕ ЭТУ СТРОКУ
     ports:
       - "8020:8000"
     volumes:
@@ -431,15 +432,12 @@ services:
     environment:
       - PPT_TEMPLATE_PATH=/app/templates
       - PYTHONUNBUFFERED=1
-      - HOST=0.0.0.0
-      - UVICORN_HOST=0.0.0.0  # Управляет хостом на уровне библиотеки uvicorn
-      - PORT=8000
-      - UVICORN_PORT=8000
-      # Официальные переменные фреймворка FastMCP (Критически важно!)
+      - FASTMCP_TRANSPORT=http
       - FASTMCP_HOST=0.0.0.0
       - FASTMCP_PORT=8000
     networks:
       - astrachat-network
+
 
 volumes:
   # Кэш для моделей (загружаемых из облака)
