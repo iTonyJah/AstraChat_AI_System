@@ -23,13 +23,61 @@ from tools import (
 )
 
 # Initialize the FastMCP server
-app = FastMCP(
-    name="ppt-mcp-server"
-)
+mcp = FastMCP(name="ppt-mcp-server")
 
 # Global state to store presentations in memory
 presentations = {}
 current_presentation_id = None
+
+# ---- Регистрация инструментов ----
+# ВАЖНО: передаем mcp, а не app!
+register_presentation_tools(mcp, presentations, get_current_presentation_id, get_template_search_directories)
+register_content_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
+register_structural_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb, add_shape_direct)
+register_professional_tools(mcp, presentations, get_current_presentation_id)
+register_template_tools(mcp, presentations, get_current_presentation_id)
+register_hyperlink_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
+register_chart_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
+register_connector_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
+register_master_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
+register_transition_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
+
+# ---- Дополнительные инструменты ----
+@mcp.tool()  # Было @app.tool() - это ошибка!
+def list_presentations() -> Dict:
+    """List all loaded presentations."""
+    return {
+        "presentations": [
+            {
+                "id": pres_id,
+                "slide_count": len(pres.slides),
+                "is_current": pres_id == current_presentation_id
+            }
+            for pres_id, pres in presentations.items()
+        ],
+        "current_presentation_id": current_presentation_id,
+        "total_presentations": len(presentations)
+    }
+
+@mcp.tool()
+def switch_presentation(presentation_id: str) -> Dict:
+    """Switch to a different loaded presentation."""
+    if presentation_id not in presentations:
+        return {"error": f"Presentation '{presentation_id}' not found."}
+    global current_presentation_id
+    old_id = current_presentation_id
+    current_presentation_id = presentation_id
+    return {"message": f"Switched from '{old_id}' to '{presentation_id}'"}
+
+@mcp.tool()
+def get_server_info() -> Dict:
+    """Get information about the MCP server."""
+    return {
+        "name": "PowerPoint MCP Server",
+        "version": "2.1.0",
+        "loaded_presentations": len(presentations),
+        "current_presentation": current_presentation_id
+    }
 
 # Template configuration
 def get_template_search_directories():
@@ -437,25 +485,19 @@ def main(transport: str = "stdio", port: int = 8000):
         # Run the FastMCP server
         app.run(transport='stdio')
 
+# ---- Запуск сервера ----
+def main(transport: str = "http", port: int = 8000):
+    if transport == "http":
+        # Запускаем MCP сервер в режиме streamable-http
+        mcp.run(transport="streamable-http")
+    elif transport == "sse":
+        mcp.run(transport="sse")
+    else:
+        mcp.run(transport="stdio")
+
 if __name__ == "__main__":
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="MCP Server for PowerPoint manipulation using python-pptx")
-
-    parser.add_argument(
-        "-t",
-        "--transport",
-        type=str,
-        default="stdio",
-        choices=["stdio", "http", "sse"],
-        help="Transport method for the MCP server (default: stdio)"
-    )
-
-    parser.add_argument(
-        "-p",
-        "--port",
-        type=int,
-        default=8000,
-        help="Port to run the MCP server on (default: 8000)"
-    )
+    parser = argparse.ArgumentParser(description="MCP Server for PowerPoint")
+    parser.add_argument("-t", "--transport", type=str, default="http", choices=["stdio", "http", "sse"])
+    parser.add_argument("-p", "--port", type=int, default=8000)
     args = parser.parse_args()
     main(args.transport, args.port)
