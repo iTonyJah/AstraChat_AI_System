@@ -1,0 +1,522 @@
+itj@fedora:~/AstraChat_AI_System$ docker compose logs mcp-powerpoint --tail 50
+astrachat-mcp-powerpoint  |                              b3faacbb14a4410c83b9680c3571
+astrachat-mcp-powerpoint  |                              981b
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:36554 - "DELETE /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:36558 - "GET /health HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:35] INFO     Created new          streamable_http_manager.py:281
+astrachat-mcp-powerpoint  |                              transport with
+astrachat-mcp-powerpoint  |                              session ID:
+astrachat-mcp-powerpoint  |                              df11960b876440429f2e
+astrachat-mcp-powerpoint  |                              1a8906b5be8b
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52438 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52454 - "POST /mcp HTTP/1.1" 202 Accepted
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52462 - "GET /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52464 - "GET /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:60364 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:43] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:60380 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  |                     INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              ListToolsRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:60392 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:46] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44064 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:49] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44076 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:52] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44084 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:55] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44096 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:57] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50788 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:00] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50792 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:02] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50800 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:04] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50816 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:08] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | [07/26/26 08:20:23] INFO     Terminating session:         streamable_http.py:788
+astrachat-mcp-powerpoint  |                              df11960b876440429f2e1a8906b5
+astrachat-mcp-powerpoint  |                              be8b
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:38976 - "DELETE /mcp HTTP/1.1" 200 OK
+itj@fedora:~/AstraChat_AI_System$ docker compose logs --tail 50
+astrachat-svc-rag  | [SVC-RAG] время_поиска_с=0.0500 (retrieval, постобработка, опционально LLM-judge)
+astrachat-svc-rag  | [SVC-RAG] --- Метрики retrieval (финальная выдача) ---
+astrachat-svc-rag  | [SVC-RAG]   hits_в_ответе=0 k_запрошено=12
+astrachat-svc-rag  | [SVC-RAG]   подсказка: проверьте пороги релевантности, парсинг документов и запрос
+astrachat-svc-rag  | ************************************************************************
+astrachat-svc-rag  | 2026-07-26 07:41:02,068: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(78)]: a2e3e0bb POST /v1/search 200
+astrachat-svc-rag  | 2026-07-26 07:41:02,068: [140094205244288] [astra-chat-rag][MainThread][INFO][uvicorn.access:send(485)]: 172.18.0.14:55906 - "POST /v1/search HTTP/1.1" 200
+astrachat-svc-rag  | 2026-07-26 07:41:02,111: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(76)]: ad71c83b GET /v1/documents
+astrachat-svc-rag  | 2026-07-26 07:41:02,113: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(78)]: ad71c83b GET /v1/documents 200
+astrachat-svc-rag  | 2026-07-26 07:41:02,113: [140094205244288] [astra-chat-rag][MainThread][INFO][uvicorn.access:send(485)]: 172.18.0.14:55908 - "GET /v1/documents HTTP/1.1" 200
+astrachat-mcp-powerpoint  |                              b3faacbb14a4410c83b9680c3571
+astrachat-mcp-powerpoint  |                              981b
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:36554 - "DELETE /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:36558 - "GET /health HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:35] INFO     Created new          streamable_http_manager.py:281
+astrachat-mcp-powerpoint  |                              transport with
+astrachat-mcp-powerpoint  |                              session ID:
+astrachat-mcp-powerpoint  |                              df11960b876440429f2e
+ocr-service-1             |
+astrachat-mcp-powerpoint  |                              1a8906b5be8b
+ocr-service-1             | ================================================================================
+astrachat-mcp-websearch   | npm warn exec The following package was not found and will be installed: open-websearch@2.1.11
+stt-service-1             | 🚀 STARTING WHISPERX HANDLER
+astrachat-mcp-websearch   | npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+astrachat-mcp-websearch   | 🔍 Default search engine: duckduckgo
+astrachat-mcp-websearch   | 🔍 Allowed search engines: duckduckgo, bing, exa, brave
+astrachat-mcp-websearch   | 🔍 Search mode: AUTO (currently only affects Bing)
+astrachat-mcp-websearch   | 🌐 No proxy configured (set USE_PROXY=true to enable)
+astrachat-svc-rag         | 2026-07-26 07:41:05,133: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(76)]: 2e9a1941 GET /v1/documents
+astrachat-svc-rag         | 2026-07-26 07:41:05,135: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(78)]: 2e9a1941 GET /v1/documents 200
+astrachat-svc-rag         | 2026-07-26 07:41:05,135: [140094205244288] [astra-chat-rag][MainThread][INFO][uvicorn.access:send(485)]: 172.18.0.14:55912 - "GET /v1/documents HTTP/1.1" 200
+astrachat-svc-rag         | 2026-07-26 08:17:29,506: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(76)]: 4d2e18c2 POST /v1/search
+astrachat-svc-rag         | 2026-07-26 08:17:29,508: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:resolve_auto_pipeline_strategy(281)]: [RAG-AUTO] store=global mode=heuristic selected=vector query='Создай презентацию на тему "Обучение ИИ" с 3 слайдами:\n1. Титульный слайд с заголовком и подзаголовком\n2. Слайд с маркированным списком методов обучения\n3. Слай' scores={'vector': 1.8, 'graph': 1.0, 'hierarchical': 1.8} available={lexical:False, hybrid:False, graph:True, vector:true}
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52438 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-svc-rag         | 2026-07-26 08:17:29,508: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_service:search(356)]: [SVC-RAG] global strategy=auto → vector (hybrid_ready=False graph=True hierarchical=True)
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52454 - "POST /mcp HTTP/1.1" 202 Accepted
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52462 - "GET /mcp HTTP/1.1" 200 OK
+astrachat-svc-rag         | 2026-07-26 08:17:29,508: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:effective_use_reranking(106)]: [RAG] Реранк отключён для этого запроса: текущий reranker — английский (ms-marco-MiniLM-L-6-v2), а запрос на кириллице. Задайте RAG_RERANKER_ENGLISH_ONLY=0 после замены модели, либо RAG_FORCE_RERANK_CYRILLIC=1 чтобы форсировать.
+tts-service-1             |
+astrachat-rag-models      | 2026-07-26 08:36:05,235 - app.main - INFO - Request 8895722d-1ad1-497a-ac95-bf51e292c5ef: GET http://127.0.0.1:8000/v1/health
+astrachat-mcp-websearch   | 🔐 fetchWebContent TLS verification is enabled
+astrachat-mcp-websearch   | 🧭 Playwright client source: auto
+astrachat-mcp-websearch   | 🧭 Playwright headless: true
+astrachat-mcp-websearch   | 🧭 Playwright navigation timeout: 20000ms
+astrachat-mcp-websearch   | 🖥 Server mode: HTTP
+astrachat-mcp-websearch   | 🔒 CORS disabled (set ENABLE_CORS=true to enable)
+astrachat-mcp-websearch   | 🔌 Starting HTTP server...
+astrachat-mcp-websearch   | ✅ HTTP server running on port 3000
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:52464 - "GET /mcp HTTP/1.1" 200 OK
+diarization-service-1     | [Handler MODULE] Loaded, PID=1, id(module globals)=140522188369024
+diarization-service-1     |
+diarization-service-1     | ================================================================================
+tts-service-1             | ================================================================================
+tts-service-1             | 🔊 STARTING TTS SERVICE (SILERO)
+tts-service-1             | ================================================================================
+tts-service-1             |
+tts-service-1             | 2026-07-25 17:27:14,053 - app.main - INFO - Silero handler initialized
+astrachat-rag-models      | 2026-07-26 08:36:05,236 - app.main - INFO - Request 8895722d-1ad1-497a-ac95-bf51e292c5ef: status=200 time=0.00s
+stt-service-1             | [WhisperX] Загрузка моделей из /app/models/whisperx_models
+astrachat-rag-models      | 2026-07-26 08:36:20,304 - app.main - INFO - Request 5aedc661-f2ea-4fef-9c1d-56aa06890f48: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:36:20,304 - app.main - INFO - Request 5aedc661-f2ea-4fef-9c1d-56aa06890f48: status=200 time=0.00s
+tts-service-1             |
+tts-service-1             | ================================================================================
+tts-service-1             | ✅ TTS SERVICE READY
+ocr-service-1             | 👁 STARTING SURYA OCR SERVICE
+ocr-service-1             |    models_dir=/app/models/surya exists=True
+ocr-service-1             | ================================================================================
+ocr-service-1             |
+ocr-service-1             | /usr/local/lib/python3.11/dist-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+ocr-service-1             |   warnings.warn(
+ocr-service-1             | 2026-07-25 17:27:20,570 - app.main - INFO - Surya OCR handler initialized
+ocr-service-1             | 2026-07-25 17:27:20,570 - app.main - INFO - Application started successfully
+ocr-service-1             | ✅ OCR SERVICE READY
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:60364 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:43] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:60380 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  |                     INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              ListToolsRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:60392 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:46] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44064 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:49] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44076 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:52] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44084 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:55] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:44096 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:17:57] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50788 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:00] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50792 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:02] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+stt-service-1             | 2026-07-25 17:27:18,319 - matplotlib.font_manager - INFO - generated new fontManager
+stt-service-1             | /usr/local/lib/python3.11/dist-packages/pyannote/audio/core/io.py:43: UserWarning: torchaudio._backend.set_audio_backend has been deprecated. With dispatcher enabled, this function is no-op. You can remove the function call.
+stt-service-1             |   torchaudio.set_audio_backend("soundfile")
+stt-service-1             | /usr/local/lib/python3.11/dist-packages/pyannote/audio/pipelines/speaker_verification.py:43: UserWarning: torchaudio._backend.get_audio_backend has been deprecated. With dispatcher enabled, this function is no-op. You can remove the function call.
+stt-service-1             |   backend = torchaudio.get_audio_backend()
+stt-service-1             | 2026-07-25 17:27:21,192 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+stt-service-1             | 2026-07-25 17:27:21,193 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+stt-service-1             | /usr/local/lib/python3.11/dist-packages/pyannote/audio/pipelines/speaker_verification.py:45: UserWarning: Module 'speechbrain.pretrained' was deprecated, redirecting to 'speechbrain.inference'. Please update your script. This is a change from SpeechBrain 1.0. See: https://github.com/speechbrain/speechbrain/releases/tag/v1.0.0
+stt-service-1             |   from speechbrain.pretrained import (
+stt-service-1             | /usr/local/lib/python3.11/dist-packages/pyannote/audio/pipelines/speaker_verification.py:53: UserWarning: torchaudio._backend.set_audio_backend has been deprecated. With dispatcher enabled, this function is no-op. You can remove the function call.
+stt-service-1             |   torchaudio.set_audio_backend(backend)
+stt-service-1             | /usr/local/lib/python3.11/dist-packages/pyannote/audio/tasks/segmentation/mixins.py:37: UserWarning: `torchaudio.backend.common.AudioMetaData` has been moved to `torchaudio.AudioMetaData`. Please update the import path.
+stt-service-1             |   from torchaudio.backend.common import AudioMetaData
+stt-service-1             | [WhisperX] Библиотека whisperx импортирована OK
+stt-service-1             | [WhisperX] Устройство: cpu, CUDA доступна: False
+stt-service-1             | [WhisperX] compute_type: int8
+stt-service-1             | [WhisperX] Директория моделей (2 элементов): ['.locks', 'models--Systran--faster-whisper-medium']
+stt-service-1             | [WhisperX] Директория доступна для записи ✓
+stt-service-1             | [WhisperX] Языки для загрузки: ['ru']
+stt-service-1             | [WhisperX] >>> Загрузка модели для 'ru'...
+stt-service-1             | [WhisperX] Параметры: device=cpu, compute_type=int8, download_root=/app/models/whisperx_models
+stt-service-1             | 2026-07-25 17:27:27,550 - pytorch_lightning.utilities.migration.utils - INFO - Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.6.5. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint ../usr/local/lib/python3.11/dist-packages/whisperx/assets/pytorch_model.bin`
+stt-service-1             | Model was trained with pyannote.audio 0.0.1, yours is 3.1.1. Bad things might happen unless you revert pyannote.audio to 0.x.
+stt-service-1             | Model was trained with torch 1.10.0+cu102, yours is 2.1.2+cu121. Bad things might happen unless you revert torch to 1.x.
+stt-service-1             | [WhisperX] ✅ Модель 'ru' загружена успешно!
+stt-service-1             | [WhisperX] Итого загружено моделей: 1
+stt-service-1             | ================================================================================
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50800 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-rag-models      | 2026-07-26 08:36:35,391 - app.main - INFO - Request 2f92bc69-693c-4bed-89ef-2ea9c3394864: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:36:35,392 - app.main - INFO - Request 2f92bc69-693c-4bed-89ef-2ea9c3394864: status=200 time=0.00s
+llm-service-1             | {
+llm-service-1             |   "model": "qwen-flash",
+llm-service-1             |   "messages": [
+diarization-service-1     | 👥 STARTING DIARIZATION SERVICE
+astrachat-backend-1       | 2026-07-26 08:35:17,991: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-rag-models      | 2026-07-26 08:36:50,470 - app.main - INFO - Request d0f1a1db-953f-408e-9b6b-297e84529a9a: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:36:50,470 - app.main - INFO - Request d0f1a1db-953f-408e-9b6b-297e84529a9a: status=200 time=0.00s
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:38.922+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn9995","msg":"Connection ended","attr":{"remote":"127.0.0.1:53004","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"71afbc49-8cab-407d-a434-248f93256d92"}},"connectionId":9995,"connectionCount":8}}
+astrachat-backend-1       | 2026-07-26 08:35:47,990: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:35:47,990: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:36:17,989: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:36:17,990: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:36:47,993: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:36:47,994: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:37:17,998: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:37:17,998: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:37:47,989: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:37:47,990: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-mcp-powerpoint  | [07/26/26 08:18:04] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:50816 - "POST /mcp HTTP/1.1" 200 OK
+astrachat-mcp-powerpoint  | [07/26/26 08:18:08] INFO     Processing request of type            server.py:733
+astrachat-mcp-powerpoint  |                              CallToolRequest
+stt-service-1             | 2026-07-25 17:27:27,594 - app.main - INFO - WhisperX handler initialized with 1 models
+stt-service-1             | 2026-07-25 17:27:27,594 - app.main - INFO - Speech Recognition Service started successfully
+stt-service-1             |
+tts-service-1             | ================================================================================
+tts-service-1             |
+tts-service-1             | 2026-07-25 17:27:14,053 - app.main - INFO - Application started successfully
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:34 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:34 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:38.923+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn9999","msg":"Connection ended","attr":{"remote":"127.0.0.1:53050","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"4b4c3d8b-ec38-48d5-ba67-69bb463c099d"}},"connectionId":9999,"connectionCount":7}}
+tts-service-1             | 2026-07-26 08:18:33,173 - app.main - INFO - Request 026b0ab6-e12f-488e-9795-68b50577b747: POST http://tts-service:8000/v1/synthesize
+tts-service-1             | 2026-07-26 08:18:33,175 - app.main - INFO - Request 026b0ab6-e12f-488e-9795-68b50577b747: Headers: {'host': 'tts-service:8000', 'accept-encoding': 'gzip, deflate, zstd', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.28.1', 'accept': 'audio/wav', 'content-length': '1142', 'content-type': 'application/x-www-form-urlencoded'}
+tts-service-1             | 2026-07-26 08:18:33,177 - app.main - INFO - Request 026b0ab6-e12f-488e-9795-68b50577b747: Body: text=%D0%A1%D0%BE%D0%B7%D0%B4%D0%B0%D0%B9+%D0%BF%D1%80%D0%B5%D0%B7%D0%B5%D0%BD%D1%82%D0%B0%D1%86%D0%B8%D1%8E+%D0%BD%D0%B0+%D1%82%D0%B5%D0%BC%D1%83+%22%D0%9E%D0%B1%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D0%B5+%D0%98%D0%98%22+%D1%81+3+%D1%81%D0%BB%D0%B0%D0%B9%D0%B4%D0%B0%D0%BC%D0%B8%3A%0A1.+%D0%A2%D0%B8%D1%82%D1%83%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9+%D1%81%D0%BB%D0%B0%D0%B9%D0%B4+%D1%81+%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%BC+%D0%B8+%D0%BF%D0%BE%D0%B4%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%BC%0A2.+%D0%A1%D0%BB%D0%B0%D0%B9%D0%B4+%D1%81+%D0%BC%D0%B0%D1%80%D0%BA%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%BC+%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%BE%D0%BC+%D0%BC%D0%B5%D1%82%D0%BE%D0%B4%D0%BE%D0%B2+%D0%BE%D0%B1%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D1%8F%0A3.+%D0%A1%D0%BB%D0%B0%D0%B9%D0%B4+%D1%81+%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5%D0%BC+%D0%98%D0%98+%D0%B2+%D1%80%D0%B0%D0%B7%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D1%85+%D1%81%D1%84%D0%B5%D1%80%D0%B0%D1%85%0A%0A%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8+%D0%BA%D0%B0%D0%BA+ai_training.pptx&language=ru&speaker=baya&sample_rate=48000&speech_rate=1.0
+tts-service-1             | 2026-07-26 08:18:33,220 - app.main - INFO - Request 026b0ab6-e12f-488e-9795-68b50577b747: Response status: 503
+tts-service-1             | 2026-07-26 08:18:33,220 - app.main - INFO - Request 026b0ab6-e12f-488e-9795-68b50577b747: Process time: 0.05s
+llm-service-1             |     {
+astrachat-backend-1       | 2026-07-26 08:38:17,012: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_refresh_token(596)]: JWT refresh validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:17,012: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.routes:refresh_tokens(248)]: auth refresh start user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:17,012: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:create_access_token(397)]: JWT: выдан access-токен user_id=admin размер=407 байт
+astrachat-backend-1       | 2026-07-26 08:38:17,013: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:create_refresh_token(424)]: JWT: выдан refresh-токен user_id=admin размер=408 байт
+astrachat-backend-1       | 2026-07-26 08:38:17,013: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.routes:refresh_tokens(264)]: JWT: refresh user_id=admin access=407 байт refresh=408 байт
+astrachat-backend-1       | 2026-07-26 08:38:17,013: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.routes:refresh_tokens(270)]: auth refresh success user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:17,068: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.realtime.handlers:disconnect(331)]: Socket.IO client disconnected: ARj5yO72dxYO67cRAAAn
+astrachat-rag-models      | 2026-07-26 08:37:05,548 - app.main - INFO - Request b1de4a1b-cec9-4b55-b641-44dd8595e2f2: GET http://127.0.0.1:8000/v1/health
+astrachat-backend-1       | 2026-07-26 08:38:17,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:38.923+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn9998","msg":"Connection ended","attr":{"remote":"127.0.0.1:53034","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"afc92c99-f1c8-4e85-abf3-ca87223d8cc3"}},"connectionId":9998,"connectionCount":6}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:38.923+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn9997","msg":"Connection ended","attr":{"remote":"127.0.0.1:53020","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"1c2a1275-0a48-422a-9775-d19c6b80806c"}},"connectionId":9997,"connectionCount":5}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:38.923+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn9996","msg":"Connection ended","attr":{"remote":"127.0.0.1:53008","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"3c655568-4255-431c-a5ec-51329871f3ac"}},"connectionId":9996,"connectionCount":4}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:48.245+00:00"},"s":"I",  "c":"WTCHKPT",  "id":22430,   "ctx":"Checkpointer","msg":"WiredTiger message","attr":{"message":{"ts_sec":1785055488,"ts_usec":245793,"thread":"1:0x7f41d972a640","session_name":"WT_SESSION.checkpoint","category":"WT_VERB_CHECKPOINT_PROGRESS","category_id":6,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"saving checkpoint snapshot min: 675, snapshot max: 675 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0) base write gen: 354"}}}
+llm-service-1             |       "role": "system",
+astrachat-backend-1       | 2026-07-26 08:38:17,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:17,084: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:38:17,084: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:17,141: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:38:17,141: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:17,151: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+diarization-service-1     | ================================================================================
+diarization-service-1     |
+diarization-service-1     | [Handler] get_diarization_handler called, PID=1, pipeline is None: True
+diarization-service-1     | [Handler] _load_pipeline_sync START, PID=1
+diarization-service-1     | 2026-07-25 17:27:13,527 - app.main - INFO - diarization.enabled=True, config_path=/app/models/diarization/pyannote_diarization_config.yaml
+astrachat-mcp-powerpoint  | [07/26/26 08:20:23] INFO     Terminating session:         streamable_http.py:788
+astrachat-mcp-powerpoint  |                              df11960b876440429f2e1a8906b5
+astrachat-mcp-powerpoint  |                              be8b
+astrachat-mcp-powerpoint  | INFO:     172.18.0.14:38976 - "DELETE /mcp HTTP/1.1" 200 OK
+astrachat-rag-models      | 2026-07-26 08:37:05,549 - app.main - INFO - Request b1de4a1b-cec9-4b55-b641-44dd8595e2f2: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:37:20,628 - app.main - INFO - Request 49ba9ace-db6e-43d6-9057-034fa4013882: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:37:20,629 - app.main - INFO - Request 49ba9ace-db6e-43d6-9057-034fa4013882: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:37:35,708 - app.main - INFO - Request 8f2170c9-a7e8-447b-b962-911d1bde5204: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:37:35,709 - app.main - INFO - Request 8f2170c9-a7e8-447b-b962-911d1bde5204: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:37:50,788 - app.main - INFO - Request 87ab2c07-760e-471a-9cde-5de9ea4e4588: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:37:50,789 - app.main - INFO - Request 87ab2c07-760e-471a-9cde-5de9ea4e4588: status=200 time=0.00s
+llm-service-1             |       "content": "Ты генерируешь follow-up подсказки для чата.\nНа основе диалога предложи ровно 3 коротких следующих шага пользователя.\nВерни ТОЛЬКО валидный JSON-массив без markdown и пояснений:\n[{\"title\":\"...\",\"subtitle\":\"...\",\"content\":\"...\"}]\n- title: 1-4 слова, тема кнопки\n- subtitle: опционально, до 6 слов уточнения (можно пустую строку)\n- content: готовое сообщение пользователя на русском языке (1-2 предложения)\nПодсказки должны быть релевантны последнему ответу ассистента и логично продолжать диалог."
+llm-service-1             |     },
+llm-service-1             |     {
+llm-service-1             |       "role": "user",
+llm-service-1             |       "content": "Проанализируй диалог ниже и сгенерируй 3 follow-up подсказки для пользователя.\n\nПользователь: привет\n\nАссистент: Извините, произошла ошибка при генерации ответа: Client error '401 Unauthorized' for url 'https://ws-jcvu5jctl27w30kh.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+llm-service-1             |     }
+llm-service-1             |   ],
+llm-service-1             |   "temperature": 0.6,
+llm-service-1             |   "max_tokens": 256,
+llm-service-1             |   "stream": false,
+llm-service-1             |   "enable_thinking": false
+astrachat-postgresql      |
+astrachat-postgresql      | PostgreSQL Database directory appears to contain a database; Skipping initialization
+astrachat-postgresql      |
+astrachat-minio           | MinIO Object Storage Server
+astrachat-backend-1       | 2026-07-26 08:38:17,151: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-minio           | Copyright: 2015-2026 MinIO, Inc.
+astrachat-backend-1       | 2026-07-26 08:38:17,153: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token_signature_only(467)]: JWT ws-connect validate (signature-only): успех username=admin user_id=admin sid=3227509e-3ebc-4287-8dcc-27a90ea48cc8
+astrachat-backend-1       | 2026-07-26 08:38:17,153: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.realtime.handlers:connect(321)]: Socket.IO client connected: sid=G61wwfGcOQKafuIfAAAp user_id=admin session_id=3227509e-3ebc-4287-8dcc-27a90ea48cc8
+astrachat-backend-1       | 2026-07-26 08:38:17,317: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-postgresql      | 2026-07-25 17:27:10.125 UTC [1] LOG:  starting PostgreSQL 17.10 (Debian 17.10-1.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+astrachat-postgresql      | 2026-07-25 17:27:10.125 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+astrachat-postgresql      | 2026-07-25 17:27:10.125 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+astrachat-postgresql      | 2026-07-25 17:27:10.128 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+astrachat-postgresql      | 2026-07-25 17:27:10.140 UTC [29] LOG:  database system was shut down at 2026-07-25 17:27:03 UTC
+astrachat-postgresql      | 2026-07-25 17:27:10.152 UTC [1] LOG:  database system is ready to accept connections
+astrachat-svc-rag         | 2026-07-26 08:17:29,572: [140094205244288] [astra-chat-rag][MainThread][INFO][httpx:_send_single_request(1740)]: HTTP Request: POST http://rag-models:8000/v1/embed "HTTP/1.1 200 OK"
+astrachat-minio           | License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+astrachat-minio           | Version: RELEASE.2025-09-07T16-13-09Z (go1.24.6 linux/amd64)
+astrachat-minio           |
+astrachat-minio           | API: http://172.18.0.5:9000  http://127.0.0.1:9000
+astrachat-postgresql      | 2026-07-25 17:32:10.240 UTC [27] LOG:  checkpoint starting: time
+astrachat-rag-models      | 2026-07-26 08:38:05,861 - app.main - INFO - Request 01f2e90c-e0ff-450c-813d-b7d4f2ccccdc: GET http://127.0.0.1:8000/v1/health
+astrachat-postgresql      | 2026-07-25 17:32:12.861 UTC [27] LOG:  checkpoint complete: wrote 29 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.610 s, sync=0.005 s, total=2.622 s; sync files=19, longest=0.002 s, average=0.001 s; distance=119 kB, estimate=119 kB; lsn=0/1B7B3D0, redo lsn=0/1B7B378
+astrachat-minio           | WebUI: http://172.18.0.5:9001 http://127.0.0.1:9001
+astrachat-minio           |
+astrachat-minio           | Docs: https://docs.min.io
+astrachat-minio           | WARN: Detected default credentials 'minioadmin:minioadmin', we recommend that you change these values with 'MINIO_ROOT_USER' and 'MINIO_ROOT_PASSWORD' environment variables
+astrachat-backend-1       | 2026-07-26 08:38:17,317: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:38:47,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.443+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:52996","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"2bf72e31-4e69-4760-bd09-74c548e1cdcd"}},"connectionId":10000,"connectionCount":5}}
+llm-service-1             | }
+llm-service-1             | 2026-07-25 18:26:20,852 - app.middleware.logging_middleware - INFO - Request 42b1b2dd-3fd1-4695-ad91-6950b7c2c255: Response body(JSON):
+llm-service-1             | {
+llm-service-1             |   "detail": "LLM model is not loaded"
+llm-service-1             | }
+llm-service-1             | 2026-07-25 18:26:20,852 - app.middleware.logging_middleware - INFO - Request 42b1b2dd-3fd1-4695-ad91-6950b7c2c255: Response status: 503
+llm-service-1             | 2026-07-25 18:26:20,852 - app.middleware.logging_middleware - INFO - Request 42b1b2dd-3fd1-4695-ad91-6950b7c2c255: Process time: 0.00s
+llm-service-1             | INFO:     172.18.0.14:42414 - "POST /v1/chat/completions HTTP/1.1" 503 Service Unavailable
+llm-service-1             | 2026-07-26 07:28:39,460 - app.middleware.logging_middleware - INFO - Request 41f2a812-412f-4c16-a1e3-4b9f7e04e334: POST http://llm-service:8000/v1/chat/completions
+llm-service-1             | 2026-07-26 07:28:39,460 - app.middleware.logging_middleware - INFO - Request 41f2a812-412f-4c16-a1e3-4b9f7e04e334: Body:
+llm-service-1             | {
+llm-service-1             |   "model": "qwen3.7-flash",
+llm-service-1             |   "messages": [
+llm-service-1             |     {
+llm-service-1             |       "role": "system",
+llm-service-1             |       "content": "Ты генерируешь follow-up подсказки для чата.\nНа основе диалога предложи ровно 3 коротких следующих шага пользователя.\nВерни ТОЛЬКО валидный JSON-массив без markdown и пояснений:\n[{\"title\":\"...\",\"subtitle\":\"...\",\"content\":\"...\"}]\n- title: 1-4 слова, тема кнопки\n- subtitle: опционально, до 6 слов уточнения (можно пустую строку)\n- content: готовое сообщение пользователя на русском языке (1-2 предложения)\nПодсказки должны быть релевантны последнему ответу ассистента и логично продолжать диалог."
+llm-service-1             |     },
+llm-service-1             |     {
+llm-service-1             |       "role": "user",
+llm-service-1             |       "content": "Проанализируй диалог ниже и сгенерируй 3 follow-up подсказки для пользователя.\n\nПользователь: созадай пустой файл презентации\n\nАссистент: Пустая презентация создана успешно! \n\n- **ID презентации:** presentation_6\n- **Количество слайдов:** 0\n\nТеперь вы можете добавлять слайды, заполнять их контентом и сохранять файл. Хотите добавить первый слайд?\n\nПользователь: да, добавь слайд с текстом посередине: Привет, мир!\n\nАссистент: Слайд успешно создан! \n\nНа слайде размещён текст **\"Привет, мир!\"** по центру с:\n- Жирным начертанием\n- Размером шрифта 36\n\nХотите:\n1. Сохранить презентацию в файл?\n2. Добавить ещё слайдов?\n3. Что-то изменить на текущем слайде?\n\nПользователь: да, добавь второй сайд и внеси туда всю техническую ифнормацию об этом инструменте какую ты знаешь. потом сохрани файл чтобы я мог его посмотреть.\n\nАссистент: Извините, произошла ошибка при генерации ответа: Client error '401 Unauthorized' for url 'https://ws-jcvu5jctl27w30kh.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+llm-service-1             |     }
+llm-service-1             |   ],
+llm-service-1             |   "temperature": 0.6,
+llm-service-1             |   "max_tokens": 256,
+llm-service-1             |   "stream": false,
+llm-service-1             |   "enable_thinking": false
+llm-service-1             | }
+llm-service-1             | 2026-07-26 07:28:39,461 - app.middleware.logging_middleware - INFO - Request 41f2a812-412f-4c16-a1e3-4b9f7e04e334: Response body(JSON):
+astrachat-postgresql      | 2026-07-25 19:54:11.913 UTC [27] LOG:  checkpoint starting: time
+astrachat-postgresql      | 2026-07-25 19:54:12.426 UTC [27] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.503 s, sync=0.003 s, total=0.514 s; sync files=4, longest=0.002 s, average=0.001 s; distance=4 kB, estimate=107 kB; lsn=0/1B7C520, redo lsn=0/1B7C4C8
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:34 AM 172.18.0.1 GET /monaco/vs/editor/editor.main.css
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:34 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-backend-1       | 2026-07-26 08:38:47,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:39:17,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.447+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10000","msg":"client metadata","attr":{"remote":"127.0.0.1:52996","client":"conn10000","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-svc-rag         | 2026-07-26 08:17:29,630: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: ************************************************************************
+astrachat-svc-rag         | 2026-07-26 08:17:29,630: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] Использована стратегия поиска: vector
+astrachat-svc-rag         | 2026-07-26 08:17:29,630: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] Хранилище: global (глобальные документы)
+astrachat-svc-rag         | 2026-07-26 08:17:29,630: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] Пайплайн: pgvector_cosine → нет кандидатов
+astrachat-svc-rag         | 2026-07-26 08:17:29,630: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] k=12
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] лимит_pgvector=168
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] document_id=None
+astrachat-backend-1       | 2026-07-26 08:39:17,080: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.447+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10000","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:52996","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:35 AM 172.18.0.1 GET /astra.png
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:35 AM 172.18.0.1 Returned 304 in 0 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /share/ad47d8c9-a4c7-453e-b305-766ebf77e672
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /static/js/main.63fa1b5e.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /static/css/main.aee3bed6.css
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 2 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/loader.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 0 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /config/config.yml
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 0 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /manifest.json
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 0 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /api/share/ad47d8c9-a4c7-453e-b305-766ebf77e672
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/editor/editor.main.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 2 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/nls.messages-loader.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/monaco.contribution-DO3azKX8.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/monaco.contribution-qLAYrEOP.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/monaco.contribution-EcChJV6a.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/monaco.contribution-D2OdxNBt.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/basic-languages/monaco.contribution.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 3 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 3 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 3 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 2 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 3 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 2 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/editor.api-CalNCsUg.js
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] время_поиска_с=0.1227 (retrieval, постобработка, опционально LLM-judge)
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG] --- Метрики retrieval (финальная выдача) ---
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG]   hits_в_ответе=0 k_запрошено=12
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: [SVC-RAG]   подсказка: проверьте пороги релевантности, парсинг документов и запрос
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.services.rag_search_helpers:_emit(846)]: ************************************************************************
+astrachat-svc-rag         | ************************************************************************
+astrachat-svc-rag         | [SVC-RAG] Использована стратегия поиска: vector
+astrachat-svc-rag         | [SVC-RAG] Хранилище: global (глобальные документы)
+astrachat-svc-rag         | [SVC-RAG] Пайплайн: pgvector_cosine → нет кандидатов
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/workers-DcJshg-q.js
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-rag-models      | 2026-07-26 08:38:05,862 - app.main - INFO - Request 01f2e90c-e0ff-450c-813d-b7d4f2ccccdc: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:38:20,944 - app.main - INFO - Request 649d39ff-e3f2-4cfb-8082-fcf1ab74f370: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:38:20,945 - app.main - INFO - Request 649d39ff-e3f2-4cfb-8082-fcf1ab74f370: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:38:36,016 - app.main - INFO - Request fcd0e5e0-c1cc-45bf-9b93-9663a6f82cf0: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:38:36,017 - app.main - INFO - Request fcd0e5e0-c1cc-45bf-9b93-9663a6f82cf0: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:38:51,089 - app.main - INFO - Request 14f4c715-3f5c-43ed-8ef7-b19ee3843d93: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:38:51,089 - app.main - INFO - Request 14f4c715-3f5c-43ed-8ef7-b19ee3843d93: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:39:06,163 - app.main - INFO - Request da4ae15e-a89c-477b-8b65-9347aa8433c9: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:39:06,164 - app.main - INFO - Request da4ae15e-a89c-477b-8b65-9347aa8433c9: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:39:21,241 - app.main - INFO - Request 53aed38c-0cbd-4705-b521-8b418aa2c8d2: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:39:21,241 - app.main - INFO - Request 53aed38c-0cbd-4705-b521-8b418aa2c8d2: status=200 time=0.00s
+astrachat-svc-rag         | [SVC-RAG] k=12
+astrachat-svc-rag         | [SVC-RAG] лимит_pgvector=168
+astrachat-svc-rag         | [SVC-RAG] document_id=None
+astrachat-svc-rag         | [SVC-RAG] время_поиска_с=0.1227 (retrieval, постобработка, опционально LLM-judge)
+astrachat-svc-rag         | [SVC-RAG] --- Метрики retrieval (финальная выдача) ---
+astrachat-svc-rag         | [SVC-RAG]   hits_в_ответе=0 k_запрошено=12
+astrachat-svc-rag         | [SVC-RAG]   подсказка: проверьте пороги релевантности, парсинг документов и запрос
+astrachat-svc-rag         | ************************************************************************
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(78)]: 4d2e18c2 POST /v1/search 200
+astrachat-svc-rag         | 2026-07-26 08:17:29,631: [140094205244288] [astra-chat-rag][MainThread][INFO][uvicorn.access:send(485)]: 172.18.0.14:44908 - "POST /v1/search HTTP/1.1" 200
+diarization-service-1     | 2026-07-25 17:27:15,543 - matplotlib.font_manager - INFO - generated new fontManager
+diarization-service-1     | /usr/local/lib/python3.11/dist-packages/pyannote/audio/core/io.py:43: UserWarning: torchaudio._backend.set_audio_backend has been deprecated. With dispatcher enabled, this function is no-op. You can remove the function call.
+diarization-service-1     |   torchaudio.set_audio_backend("soundfile")
+diarization-service-1     | [Handler] pyannote.audio imported OK
+diarization-service-1     | [Handler] Config NOT FOUND: /app/models/diarization/pyannote_diarization_config.yaml
+diarization-service-1     | [Handler] After load: pipeline is None: True
+diarization-service-1     | 2026-07-25 17:27:18,206 - app.main - ERROR - ❌ FAILED TO INITIALIZE DIARIZATION PIPELINE
+diarization-service-1     |
+diarization-service-1     | ================================================================================
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /monaco/vs/editor/editor.main.css
+diarization-service-1     | ❌ FAILED TO INITIALIZE DIARIZATION PIPELINE
+diarization-service-1     | ================================================================================
+diarization-service-1     |
+diarization-service-1     | 2026-07-25 17:27:18,206 - app.main - INFO - Application started successfully
+astrachat-backend-1       | 2026-07-26 08:39:47,078: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:39:47,078: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:40:17,078: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:40:17,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:40:47,078: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /astra.ico
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 GET /astra.png
+astrachat-frontend-1      |  HTTP  7/26/2026 7:54:37 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 7:55:04 AM 172.18.0.1 GET /astra.png
+astrachat-frontend-1      |  HTTP  7/26/2026 7:55:04 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 8:17:25 AM 172.18.0.1 GET /astra.png
+astrachat-frontend-1      |  HTTP  7/26/2026 8:17:25 AM 172.18.0.1 Returned 304 in 1 ms
+astrachat-frontend-1      |  HTTP  7/26/2026 8:38:17 AM 172.18.0.1 GET /astra.png
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.453+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:52998","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"0f3d0539-9b13-4a01-8b21-8efe5e13acae"}},"connectionId":10001,"connectionCount":6}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.454+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10001","msg":"client metadata","attr":{"remote":"127.0.0.1:52998","client":"conn10001","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.454+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10001","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:52998","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.471+00:00"},"s":"I",  "c":"NETWORK",  "id":6788700, "ctx":"conn10001","msg":"Received first command on ingress connection since session start or auth handshake","attr":{"elapsedMillis":16}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.607+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:53004","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"e59df96f-5f78-4398-877d-9506b863d148"}},"connectionId":10002,"connectionCount":7}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.607+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:53016","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"8a43d437-7a6d-48e3-bd0b-2b4a6f60110e"}},"connectionId":10003,"connectionCount":8}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.611+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10002","msg":"client metadata","attr":{"remote":"127.0.0.1:53004","client":"conn10002","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.611+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10002","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:53004","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.612+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10003","msg":"client metadata","attr":{"remote":"127.0.0.1:53016","client":"conn10003","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.612+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10003","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:53016","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-backend-1       | 2026-07-26 08:40:47,079: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-frontend-1      |  HTTP  7/26/2026 8:38:17 AM 172.18.0.1 Returned 304 in 1 ms
+llm-service-1             | {
+astrachat-backend-1       | 2026-07-26 08:41:15,012: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.realtime.handlers:disconnect(331)]: Socket.IO client disconnected: G61wwfGcOQKafuIfAAAp
+astrachat-backend-1       | 2026-07-26 08:44:13,365: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token_signature_only(467)]: JWT ws-connect validate (signature-only): успех username=admin user_id=admin sid=3227509e-3ebc-4287-8dcc-27a90ea48cc8
+astrachat-backend-1       | 2026-07-26 08:44:13,366: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.realtime.handlers:connect(321)]: Socket.IO client connected: sid=mg5wFbMJCf1QTXpBAAAr user_id=admin session_id=3227509e-3ebc-4287-8dcc-27a90ea48cc8
+llm-service-1             |   "detail": "LLM model is not loaded"
+astrachat-backend-1       | 2026-07-26 08:44:13,368: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:44:13,369: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:44:13,439: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:44:13,439: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-backend-1       | 2026-07-26 08:44:13,758: [140077904252928] [astra-chat-backend][MainThread][WARNING][backend.llm_providers.openai_compat:health(331)]: [LLM-PROVIDER][health] id=DASHSCOPE url=https://ws-jcvu5jctl27w30kh.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/health status=None type=ConnectError reason='[Errno -3] Temporary failure in name resolution' auth={'api_key_env': 'DASHSCOPE_API_KEY', 'api_key_set': True, 'auth_header': 'Authorization: Bearer *', 'x_api_key_header': 'X-API-Key: *'}
+astrachat-backend-1       | 2026-07-26 08:44:42,876: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:get_current_user(626)]: JWT auth: проверка access токена для обязательной авторизации
+astrachat-backend-1       | 2026-07-26 08:44:42,876: [140077904252928] [astra-chat-backend][MainThread][INFO][backend.auth.jwt_handler:decode_token(534)]: JWT access validate: успех username=admin user_id=admin
+astrachat-svc-rag         | 2026-07-26 08:17:29,694: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(76)]: 19c8af8b GET /v1/documents
+astrachat-svc-rag         | 2026-07-26 08:17:29,696: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(78)]: 19c8af8b GET /v1/documents 200
+astrachat-svc-rag         | 2026-07-26 08:17:29,696: [140094205244288] [astra-chat-rag][MainThread][INFO][uvicorn.access:send(485)]: 172.18.0.14:34704 - "GET /v1/documents HTTP/1.1" 200
+astrachat-svc-rag         | 2026-07-26 08:17:34,256: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(76)]: bdc1688b GET /v1/documents
+astrachat-svc-rag         | 2026-07-26 08:17:34,258: [140094205244288] [astra-chat-rag][MainThread][INFO][app.main:log_requests(78)]: bdc1688b GET /v1/documents 200
+astrachat-svc-rag         | 2026-07-26 08:17:34,258: [140094205244288] [astra-chat-rag][MainThread][INFO][uvicorn.access:send(485)]: 172.18.0.14:34708 - "GET /v1/documents HTTP/1.1" 200
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.615+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:53018","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"77d8fee5-5feb-4de2-9829-aaa84fa8ae65"}},"connectionId":10004,"connectionCount":9}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.618+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10004","msg":"client metadata","attr":{"remote":"127.0.0.1:53018","client":"conn10004","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.618+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10004","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:53018","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+llm-service-1             | }
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.626+00:00"},"s":"I",  "c":"NETWORK",  "id":6788700, "ctx":"conn10004","msg":"Received first command on ingress connection since session start or auth handshake","attr":{"elapsedMillis":7}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.630+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10000","msg":"Connection ended","attr":{"remote":"127.0.0.1:52996","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"2bf72e31-4e69-4760-bd09-74c548e1cdcd"}},"connectionId":10000,"connectionCount":8}}
+astrachat-rag-models      | 2026-07-26 08:39:36,312 - app.main - INFO - Request 1fd88734-33db-4f61-8814-e5a006b1e9a3: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:39:36,313 - app.main - INFO - Request 1fd88734-33db-4f61-8814-e5a006b1e9a3: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:39:51,383 - app.main - INFO - Request eeebf093-c2f2-4224-b8f2-8f1d7f8f3ed3: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:39:51,384 - app.main - INFO - Request eeebf093-c2f2-4224-b8f2-8f1d7f8f3ed3: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:40:06,455 - app.main - INFO - Request 088a6422-8c8f-4dcd-85bf-9040177f955d: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:40:06,456 - app.main - INFO - Request 088a6422-8c8f-4dcd-85bf-9040177f955d: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:40:21,534 - app.main - INFO - Request db86e18f-6a1e-4977-beca-313a3cee7b77: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:40:21,535 - app.main - INFO - Request db86e18f-6a1e-4977-beca-313a3cee7b77: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:40:36,615 - app.main - INFO - Request ddcef3ef-6c96-40d9-9b48-802e82e08360: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:40:36,615 - app.main - INFO - Request ddcef3ef-6c96-40d9-9b48-802e82e08360: status=200 time=0.00s
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.631+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10004","msg":"Connection ended","attr":{"remote":"127.0.0.1:53018","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"77d8fee5-5feb-4de2-9829-aaa84fa8ae65"}},"connectionId":10004,"connectionCount":7}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.631+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10003","msg":"Connection ended","attr":{"remote":"127.0.0.1:53016","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"8a43d437-7a6d-48e3-bd0b-2b4a6f60110e"}},"connectionId":10003,"connectionCount":6}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.631+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10002","msg":"Connection ended","attr":{"remote":"127.0.0.1:53004","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"e59df96f-5f78-4398-877d-9506b863d148"}},"connectionId":10002,"connectionCount":5}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:44:49.631+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10001","msg":"Connection ended","attr":{"remote":"127.0.0.1:52998","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"0f3d0539-9b13-4a01-8b21-8efe5e13acae"}},"connectionId":10001,"connectionCount":4}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.142+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:48262","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"9ceedf48-7006-4b83-8224-ebe6c7bb38b0"}},"connectionId":10005,"connectionCount":5}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.146+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10005","msg":"client metadata","attr":{"remote":"127.0.0.1:48262","client":"conn10005","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.146+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10005","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:48262","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.152+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:48266","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"c605219d-1d6b-45e8-9b34-4d3ee40525aa"}},"connectionId":10006,"connectionCount":6}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.154+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10006","msg":"client metadata","attr":{"remote":"127.0.0.1:48266","client":"conn10006","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.154+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10006","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:48266","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-rag-models      | 2026-07-26 08:40:51,692 - app.main - INFO - Request c5bf09ce-da5d-4348-a1c1-e118ee595368: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:40:51,693 - app.main - INFO - Request c5bf09ce-da5d-4348-a1c1-e118ee595368: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:41:06,768 - app.main - INFO - Request 50e6acac-3f76-4e64-aeb5-aebd67a75a2b: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:41:06,769 - app.main - INFO - Request 50e6acac-3f76-4e64-aeb5-aebd67a75a2b: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:44:17,642 - app.main - INFO - Request cc608026-2fca-44b9-a11c-3cbf0672ef4d: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:44:17,643 - app.main - INFO - Request cc608026-2fca-44b9-a11c-3cbf0672ef4d: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:44:32,724 - app.main - INFO - Request 29a3977b-fa81-4a31-bfc5-34489bc4589c: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:44:32,724 - app.main - INFO - Request 29a3977b-fa81-4a31-bfc5-34489bc4589c: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:44:47,797 - app.main - INFO - Request 307b10d5-dd6e-451b-be5e-b2707434069f: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:44:47,798 - app.main - INFO - Request 307b10d5-dd6e-451b-be5e-b2707434069f: status=200 time=0.00s
+astrachat-rag-models      | 2026-07-26 08:45:02,870 - app.main - INFO - Request db76a242-017f-4ccc-b5de-460d61596d03: GET http://127.0.0.1:8000/v1/health
+astrachat-rag-models      | 2026-07-26 08:45:02,871 - app.main - INFO - Request db76a242-017f-4ccc-b5de-460d61596d03: status=200 time=0.00s
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.170+00:00"},"s":"I",  "c":"NETWORK",  "id":6788700, "ctx":"conn10006","msg":"Received first command on ingress connection since session start or auth handshake","attr":{"elapsedMillis":16}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.306+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:48270","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"117aca3f-491d-4cc4-af58-5bcde37b971f"}},"connectionId":10007,"connectionCount":7}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.306+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:48276","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"28d0ddbe-3d26-4770-a2c6-290e5ddad0a1"}},"connectionId":10008,"connectionCount":8}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.310+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10007","msg":"client metadata","attr":{"remote":"127.0.0.1:48270","client":"conn10007","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.310+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10007","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:48270","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.311+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10008","msg":"client metadata","attr":{"remote":"127.0.0.1:48276","client":"conn10008","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.311+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10008","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:48276","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.315+00:00"},"s":"I",  "c":"NETWORK",  "id":22943,   "ctx":"listener","msg":"Connection accepted","attr":{"remote":"127.0.0.1:48278","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"772a84cb-ba90-4a07-b52c-83fe3bae74eb"}},"connectionId":10009,"connectionCount":9}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.318+00:00"},"s":"I",  "c":"NETWORK",  "id":51800,   "ctx":"conn10009","msg":"client metadata","attr":{"remote":"127.0.0.1:48278","client":"conn10009","negotiatedCompressors":[],"doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.318+00:00"},"s":"I",  "c":"ACCESS",   "id":10483900,"ctx":"conn10009","msg":"Connection not authenticating","attr":{"client":"127.0.0.1:48278","doc":{"application":{"name":"mongosh 2.9.2"},"driver":{"name":"nodejs|mongosh","version":"7.3.0|2.9.2"},"platform":"Node.js v24.18.0, LE","os":{"name":"linux","architecture":"x64","version":"3.10.0-327.22.2.el7.x86_64","type":"Linux"},"env":{"container":{"runtime":"docker"}}}}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.325+00:00"},"s":"I",  "c":"NETWORK",  "id":6788700, "ctx":"conn10009","msg":"Received first command on ingress connection since session start or auth handshake","attr":{"elapsedMillis":7}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.330+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10005","msg":"Connection ended","attr":{"remote":"127.0.0.1:48262","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"9ceedf48-7006-4b83-8224-ebe6c7bb38b0"}},"connectionId":10005,"connectionCount":8}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.330+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10009","msg":"Connection ended","attr":{"remote":"127.0.0.1:48278","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"772a84cb-ba90-4a07-b52c-83fe3bae74eb"}},"connectionId":10009,"connectionCount":7}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.330+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10008","msg":"Connection ended","attr":{"remote":"127.0.0.1:48276","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"28d0ddbe-3d26-4770-a2c6-290e5ddad0a1"}},"connectionId":10008,"connectionCount":6}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.330+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10007","msg":"Connection ended","attr":{"remote":"127.0.0.1:48270","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"117aca3f-491d-4cc4-af58-5bcde37b971f"}},"connectionId":10007,"connectionCount":5}}
+astrachat-mongodb         | {"t":{"$date":"2026-07-26T08:45:00.330+00:00"},"s":"I",  "c":"NETWORK",  "id":22944,   "ctx":"conn10006","msg":"Connection ended","attr":{"remote":"127.0.0.1:48266","isLoadBalanced":false,"uuid":{"uuid":{"$uuid":"c605219d-1d6b-45e8-9b34-4d3ee40525aa"}},"connectionId":10006,"connectionCount":4}}
+llm-service-1             | 2026-07-26 07:28:39,461 - app.middleware.logging_middleware - INFO - Request 41f2a812-412f-4c16-a1e3-4b9f7e04e334: Response status: 503
+llm-service-1             | 2026-07-26 07:28:39,461 - app.middleware.logging_middleware - INFO - Request 41f2a812-412f-4c16-a1e3-4b9f7e04e334: Process time: 0.00s
+llm-service-1             | INFO:     172.18.0.14:51062 - "POST /v1/chat/completions HTTP/1.1" 503 Service Unavailable
+itj@fedora:~/AstraChat_AI_System$
