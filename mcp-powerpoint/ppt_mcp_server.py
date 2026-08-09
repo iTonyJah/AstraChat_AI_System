@@ -22,7 +22,7 @@ from tools import (
     register_master_tools,
     register_transition_tools
 )
-
+from tools.vision_tools import register_tools as register_vision_tools  # <-- НОВОЕ
 
 # Выполняем стандартную инициализацию
 mcp = FastMCP(name="ppt-mcp-server")
@@ -174,6 +174,7 @@ register_connector_tools(mcp, presentations, get_current_presentation_id, valida
 register_master_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
 register_transition_tools(mcp, presentations, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb)
 
+register_vision_tools(mcp)  # <-- НОВОЕ (не нужны ни presentations, ни хелперы)
 
 # =====================================================================
 # ---- Additional Utility Tools ----
@@ -225,40 +226,49 @@ from starlette.responses import JSONResponse
 
 class AstraDockerHostBypassMiddleware:
     """
-    Кастомное ASGI Middleware. Перехватывает любые опросы бэкенда Astra Studio
-    на эндпоинты /mcp и /health, выдавая статус 200 OK для принудительного
-    перевода сервера в режим connected и обхода валидации сессий SDK Anthropic.
+    Минимальный совместимый middleware для AstraChat + MCP streamable-http.
+
+    Что делает:
+    - отдаёт healthcheck для /health и /
+    - нормализует /mcp -> /mcp/, чтобы убрать 307 Temporary Redirect
+    - НЕ перехватывает GET /mcp, потому что MCP SDK может использовать там SSE
+    - подменяет Host для валидации Uvicorn внутри Docker
     """
+
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            # Перехватываем GET хелсчеки бэкенда на корень, /mcp или /health
-            if scope["method"] == "GET" and scope["path"] in ["/mcp", "/health", "/"]:
-                response = JSONResponse({
-                    "status": "ok", 
-                    "mcp_version": "1.0.0", 
-                    "server": "ppt-mcp-server"
-                })
-                await response(scope, receive, send)
-                return
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-            # ХАК: Если бэкенд шлет POST на /mcp, но это пустой стартовый пинг инициализации пула сессий
-            if scope["method"] == "POST" and scope["path"] == "/mcp":
-                headers = dict(scope.get("headers", []))
-                # Если в запросе нет MCP заголовков коннекта, отдаем заглушку, чтобы бэкенд не падал по таймауту
-                if b"x-mcp-session-id" not in headers and b"content-type" not in headers:
-                    response = JSONResponse({"status": "ok", "message": "Astra Studio initialization bypass"})
-                    await response(scope, receive, send)
-                    return
+        method = scope.get("method", "")
+        path = scope.get("path", "")
 
-            # Для легитимных POST-запросов ИИ-инструментов подменяем хост для валидации Uvicorn
-            headers = dict(scope.get("headers", []))
-            headers[b"host"] = b"127.0.0.1:8000"
-            scope["headers"] = list(headers.items())
+        # Healthcheck для AstraChat
+        if method == "GET" and path in ("/health", "/"):
+            response = JSONResponse(
+                {
+                    "status": "ok",
+                    "mcp_version": "1.0.0",
+                    "server": "ppt-mcp-server",
+                }
+            )
+            await response(scope, receive, send)
+            return
 
-        # Передаем запрос родному streamable-http менеджеру фреймворка
+        # Убираем 307 redirect: клиент ходит в /mcp, а приложение ожидает /mcp/
+        if path == "/mcp":
+            scope["path"] = "/mcp/"
+            if scope.get("raw_path") == b"/mcp":
+                scope["raw_path"] = b"/mcp/"
+
+        # Подменяем Host для Uvicorn/FastMCP внутри контейнера
+        headers = dict(scope.get("headers", []))
+        headers[b"host"] = b"127.0.0.1:8000"
+        scope["headers"] = list(headers.items())
+
         await self.app(scope, receive, send)
 
 

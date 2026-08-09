@@ -171,6 +171,8 @@ class McpAgentLoop:
             }
             working.append(assistant_msg)
 
+            pending_images: List[dict] = []
+
             for tc in result.tool_calls:
                 tool_info = _find_tool(tc.name, tools)
                 if not tool_info:
@@ -226,6 +228,8 @@ class McpAgentLoop:
                     has_image = bool(parsed.images)
                     has_audio = bool(parsed.audio)
                     has_resource = bool(parsed.resources)
+                    if parsed.images:
+                        pending_images.extend(parsed.images)
                 except Exception as exc:
                     content = f"MCP tool error: {exc}"
                     outcome = "failure"
@@ -258,6 +262,28 @@ class McpAgentLoop:
                 )
                 tool_calls_executed += 1
                 working.append({"role": "tool", "tool_call_id": tc.id, "content": content})
+
+            # ── Vision: пробрасываем изображения из MCP-результатов в LLM ──
+            if pending_images:
+                image_content: List[Dict[str, Any]] = [
+                    {
+                        "type": "text",
+                        "text": "Вот скриншоты получившихся слайдов презентации. Проверь их визуально.",
+                    }
+                ]
+                for img in pending_images:
+                    img_data = img.get("data") or ""
+                    img_mime = img.get("mimeType") or "image/png"
+                    if img_data:
+                        image_content.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{img_mime};base64,{img_data}"},
+                            }
+                        )
+                working.append({"role": "user", "content": image_content})
+                pending_images.clear()
+
 
         final = await provider.chat(
             working,

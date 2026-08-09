@@ -1,5 +1,6 @@
-mcp[cli]
+mcp[cli]==1.8.0
 python-pptx
 Pillow
 fonttools
 fastapi
+pypdfium2>=4.30.0

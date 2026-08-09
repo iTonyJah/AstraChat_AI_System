@@ -143,6 +143,7 @@ services:
       - ./uploads:/app/uploads  # Директория для загруженных документов
       - ./backend:/app  # Полное монтирование для работы импортов
       - ./models:/app/models:ro  # Монтирование локальных моделей (эмбеддинги и др.)
+      - ./assets/pptx_preview:/app/assets/pptx_preview:ro
     environment:
       - PYTHONPATH=/app
       # Старые переменные (для обратной совместимости)
@@ -430,6 +431,7 @@ services:
       - "8020:8000"
     volumes:
       - ./assets/pptx_output:/output
+      - ./assets/pptx_preview:/preview
     restart: unless-stopped
     environment:
       - PPT_TEMPLATE_PATH=/app/templates
@@ -437,6 +439,8 @@ services:
       - FASTMCP_TRANSPORT=http
       - FASTMCP_HOST=0.0.0.0
       - FASTMCP_PORT=8000
+      - PPTX_OUTPUT_DIR=/output
+      - PPTX_PREVIEW_DIR=/preview      
     networks:
       - astrachat-network
 

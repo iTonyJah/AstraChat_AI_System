@@ -55,13 +55,57 @@ def parse_mcp_result_to_struct(content: Any) -> ParsedMcpResult:
     return ParsedMcpResult(text=str(content), raw=content)
 
 
+def _extract_images_from_payload(data: Any, images: List[dict]) -> None:
+    """Рекурсивно собирает image_base64 из dict/list (результат vision_tools)."""
+    if isinstance(data, dict):
+        b64 = data.get("image_base64")
+        if isinstance(b64, str) and b64:
+            images.append({
+                "type": "image",
+                "mimeType": data.get("mime_type") or "image/png",
+                "data": b64,
+                "uri": None,
+            })
+        for value in data.values():
+            _extract_images_from_payload(value, images)
+    elif isinstance(data, list):
+        for item in data:
+            _extract_images_from_payload(item, images)
+
+
+def _strip_base64_from_payload(data: Any) -> Any:
+    """Убирает image_base64 из dict/list, чтобы не раздувать контекст LLM."""
+    if isinstance(data, dict):
+        return {
+            k: ("[image_base64 omitted]" if k == "image_base64" and isinstance(v, str) else _strip_base64_from_payload(v))
+            for k, v in data.items()
+        }
+    elif isinstance(data, list):
+        return [_strip_base64_from_payload(item) for item in data]
+    return data
+
+
 def _parse_content_item(item: dict) -> ParsedMcpResult:
     ctype = str(item.get("type") or "").lower()
     if ctype == "text":
         text = item.get("text") or item.get("data") or ""
         if isinstance(text, bytes):
             text = text.decode("utf-8", errors="replace")
-        return ParsedMcpResult(text=str(text), raw=item)
+        text = str(text)
+
+        # Vision: пытаемся вытащить image_base64 из JSON (результат vision_tools)
+        extracted_images: List[dict] = []
+        try:
+            data = json.loads(text)
+            _extract_images_from_payload(data, extracted_images)
+            if extracted_images:
+                compact_data = _strip_base64_from_payload(data)
+                compact_text = json.dumps(compact_data, ensure_ascii=False)
+                return ParsedMcpResult(text=compact_text, images=extracted_images, raw=item)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        return ParsedMcpResult(text=text, raw=item)
     if ctype == "image":
         mime = item.get("mimeType") or item.get("mime_type") or "image/png"
         data = item.get("data") or item.get("blob")

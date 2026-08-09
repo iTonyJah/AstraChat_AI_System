@@ -1,25 +1,32 @@
 FROM python:3.11-slim
 
-# 1. Установка системных зависимостей для графики и шрифтов
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Системные зависимости: LibreOffice, шрифты, графика
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-impress \
+    fontconfig \
     fonts-liberation \
-    fonts-dejavu-core \
+    fonts-dejavu \
+    fonts-crosextra-carlito \
+    fonts-crosextra-caladea \
     libgl1 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -f
 
 WORKDIR /app
 
-# Теперь это сработает идеально, так как файлы лежат прямо в корне контекста!
+# Копируем проект
 COPY . /app
 
-# Обновление pip и установка зависимостей
+# Python-зависимости
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Настройка папки для презентаций
-RUN mkdir -p /output
+# Папки для презентаций и предпросмотров
+RUN mkdir -p /output /preview
 
 EXPOSE 8000
 
-# Чистый запуск без буферизации логов
 CMD ["python", "-u", "ppt_mcp_server.py"]
