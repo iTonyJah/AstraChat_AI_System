@@ -37,7 +37,7 @@ LibreOffice headless → PPTX → PDF
 ↓
 pypdfium2 → PDF → PNG
 ↓
-Base64 PNG → Vision LLM (DashScope)
+Base64 PNG → Vision LLM (Timeweb Cloud / Gemini; ранее DashScope)
 ↓
 Описание/проверка слайдов
 ```
