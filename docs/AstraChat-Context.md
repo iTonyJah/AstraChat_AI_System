@@ -99,6 +99,29 @@ Base64 PNG → Vision LLM (DashScope)
 
 **Результат:** Vision-модель `qwen3-vl-plus-2025-09-23` успешно описывает содержимое слайдов.
 
+## Этап 4: Миграция Vision LLM с DashScope на Timeweb Cloud (Gemini) ✅
+
+**Причина:** у DashScope закончились бесплатные токены для vision-проверки презентаций; куплены токены у другого провайдера — Timeweb Cloud.
+
+**Что сделано:**
+- Проверено, что эндпоинт Timeweb OpenAI-совместим: `OpenAI(base_url="https://agent.timeweb.cloud/api/v1/cloud-ai/agents/<uuid>")`, за агентом — Gemini 3.1 Flash Lite с vision; поле `model` в запросе игнорируется (модель зашита в агента по UUID).
+- Новый провайдер подключён **без правок кода** — через динамический реестр `backend/llm_providers/registry.py` (ENV-маска `LLM_PROVIDER_<ID>_*`, kind `openai-compat` автоматически даёт `capabilities.vision=True`).
+- `.env`: добавлен блок `TIMEWEB` (KIND / BASE_URL / ENABLED / STATIC_MODEL / TIMEOUT / API_KEY_ENV + `TIMEWEB_API_KEY`), `DEFAULT_LLM_PROVIDER=TIMEWEB`.
+- `docker-compose.yml`: в `environment` сервиса `astrachat-backend` добавлен проброс `LLM_PROVIDER_TIMEWEB_*` и `TIMEWEB_API_KEY`. Важно: контейнер получает только явно перечисленные переменные — без проброса реестр видел лишь DASHSCOPE, и в UI нельзя было выбрать новую модель.
+- Нюанс URL: `openai_compat.py` всегда дописывает `/v1/chat/completions` к `base_url`. Прямой тест обоих вариантов: `.../agents/<uuid>/v1/chat/completions` → 200, `.../agents/<uuid>/chat/completions` → 404. Поэтому `BASE_URL` задаётся **без** хвоста `/v1`.
+
+**Результат:**
+- В селекторе моделей доступен TIMEWEB (`gemini/gemini-3.1-flash-lite`), он же default.
+- Сквозной тест: «Создай презентацию "Привет, мир!", сохрани в /output/test.pptx, вызови get_presentation_preview» → MCP PowerPoint создал файл, Gemini визуально проверил слайд: «заголовок «Привет, мир!» расположен по центру верхней части страницы, как и ожидалось».
+- Расход виден в статистике Timeweb: ~49.9 тыс токенов/час (входящие), это за создание пустого слайда.
+
+**Изменённые файлы:** `.env`, `docker-compose.yml`. Код `backend/` и `mcp-powerpoint/` не менялся.
+
+**Диагностика подключения:**
+- `docker compose exec -T astrachat-backend env | grep -iE "TIMEWEB|DEFAULT_LLM"`
+- проверка реестра: `get_registry()` → ожидаемо `Provider registered: id=TIMEWEB`, `2 провайдеров, default=TIMEWEB`
+- живой тест URL: `httpx.post` на оба варианта эндпоинта (см. выше)
+
 ---
 
 ## Текущая структура MCP PowerPoint
@@ -214,7 +237,6 @@ result = render_presentation_preview_impl('/output/mcp_powerpoint_tools.pptx', d
 print(json.dumps({'slides': result['slides_rendered']}, ensure_ascii=False))
 "
 ```
-
 
 # Что дальше
 ## Ближайшие задачи:
