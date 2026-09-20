@@ -7,6 +7,7 @@ from contextlib import AsyncExitStack
 from typing import Any, Callable, Dict, List, Optional
 
 import anyio
+from backend.mcp.compat import get_tool_input_schema, is_call_error
 from backend.mcp.sdk import import_mcp_sdk
 from backend.settings.logging import get_logger
 
@@ -82,7 +83,7 @@ class McpClient:
                 {
                     "name": tool.name,
                     "description": tool.description or "",
-                    "parameters": tool.inputSchema or {},
+                    "parameters": get_tool_input_schema(tool) or {},                    
                 }
             )
         return specs
@@ -95,7 +96,7 @@ class McpClient:
             raise RuntimeError("No result returned from MCP tool call.")
         result_dict = result.model_dump(mode="json")
         content = result_dict.get("content", result_dict)
-        if result.isError:
+        if is_call_error(result):
             raise RuntimeError(str(content))
         return content
 

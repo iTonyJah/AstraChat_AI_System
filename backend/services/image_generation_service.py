@@ -44,6 +44,7 @@ _INTENT_PATTERNS: List[re.Pattern[str]] = [
     re.compile(rf"(?i)^(?:пожалуйста\s+)?(?:{_DRAW_VERBS})\s+(.+)$"),
 ]
 
+_PRESENTATION_INTENT_RE = re.compile(r"(презентац|pptx|ppt|слайд|slide|deck|доклад)", re.I)
 
 def _workflow_base_dir() -> Path:
     routes_dir = Path(__file__).resolve().parent.parent / "routes"
@@ -105,6 +106,8 @@ def extract_image_prompt_from_chat(message: str) -> Optional[str]:
     text = (message or "").strip()
     if not text:
         return None
+    if _PRESENTATION_INTENT_RE.search(text):
+        return None    
     for pattern in _INTENT_PATTERNS:
         m = pattern.match(text)
         if m:

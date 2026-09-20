@@ -183,7 +183,7 @@ class LangGraphOrchestrator:
         active_tools = []
         
         for tool in self.tools:
-            if self.tool_status.get(tool.name, False):
+            if self.tool_status.get(tool.name, False) or tool.name in getattr(self, "_dynamic_mcp_tool_names", set()):    
                 active_tools.append(f"- {tool.name}: {tool.description}")
         
         return "\n".join(active_tools)
@@ -204,6 +204,10 @@ class LangGraphOrchestrator:
             # Получаем список активных инструментов
             active_tool_names = [name for name, active in self.tool_status.items() if active]
             logger.info(f"[PLANNER] Активных инструментов: {len(active_tool_names)}/{len(self.tools)}")
+
+            # Вычисляем список MCP-инструментов
+            mcp_names = sorted(getattr(self, "_dynamic_mcp_tool_names", set()))
+            available_tool_names = ", ".join(active_tool_names + mcp_names) or "нет"            
             
             # Получаем информацию о доступных документах из контекста
             doc_processor = context.get("doc_processor")
@@ -258,6 +262,10 @@ class LangGraphOrchestrator:
 
 Доступные инструменты:
 {tools_description}
+
+ТОЧНЫЕ ИМЕНА ДОСТУПНЫХ ИНСТРУМЕНТОВ:
+{available_tool_names}
+Используй ТОЛЬКО эти имена. Не выдумывай имена инструментов.
 
 Запрос пользователя: "{user_query}"
 
@@ -338,7 +346,10 @@ class LangGraphOrchestrator:
     "reasoning": "Запрос на создание промпта требует использования инструмента"
 }}
 
-ПОМНИ: Если запрос содержит слова "промпт", "создай", "напиши промпт", "улучши промпт" - ВСЕГДА используй инструменты!
+ПОМНИ:
+- Если запрос содержит слова "промпт", "создай", "напиши промпт", "улучши промпт" - ВСЕГДА используй инструменты!
+- Если запрос про презентацию или слайды: используй MCP-PowerPoint инструменты из списка точных имён; после save_presentation вызови get_presentation_preview с параметрами max_slides=2, dpi=72, если такой инструмент доступен.
+- Если нужного инструмента нет в списке точных имён, верни needs_tools: false и в reasoning укажи, что инструмент недоступен.
 
 Твой ответ (ТОЛЬКО JSON):"""
             
@@ -397,6 +408,16 @@ class LangGraphOrchestrator:
                 needs_tools = plan_data.get("needs_tools", False)
                 plan = plan_data.get("plan", [])
                 reasoning = plan_data.get("reasoning", "")
+
+                # Фильтрация галлюцинаций имён инструментов
+                validated_plan = []
+                for step in (plan or []):
+                    if isinstance(step, dict) and step.get("tool") in self.tools_by_name:
+                        validated_plan.append(step)
+                    else:
+                        logger.warning("[PLANNER] Отброшен несуществующий инструмент: %s",
+                                       step.get("tool") if isinstance(step, dict) else step)
+                plan = validated_plan                
                 
                 # ВАЛИДАЦИЯ: Если есть план, но needs_tools=False - исправляем
                 if plan and len(plan) > 0 and not needs_tools:

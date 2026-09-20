@@ -123,8 +123,38 @@ async def load_mcp_langgraph_tools(
                 await _emit(payload)
                 return result
 
-            def _make_sync(**kwargs):
+            def _make_sync(tool_input=None, **kwargs):
                 import asyncio
+                from backend.tools.prompt_tools import get_tool_context
+
+                # Нормализация tool_input в kwargs
+                call_kwargs = {}
+                if isinstance(tool_input, dict):
+                    call_kwargs.update(tool_input)
+                elif isinstance(tool_input, str):
+                    stripped = tool_input.strip()
+                    if stripped.startswith("{") or stripped.startswith("["):
+                        try:
+                            call_kwargs.update(json.loads(stripped))
+                        except json.JSONDecodeError:
+                            call_kwargs["text"] = tool_input
+                    else:
+                        call_kwargs["text"] = tool_input
+                elif tool_input is not None:
+                    call_kwargs["text"] = str(tool_input)
+
+                # Кwargs имеют приоритет
+                call_kwargs.update(kwargs)
+
+                # Получаем main event loop из tool_context
+                ctx = get_tool_context() or {}
+                main_loop = ctx.get("_main_event_loop")
+
+                if main_loop and main_loop.is_running():
+                    future = asyncio.run_coroutine_threadsafe(_arun(**call_kwargs), main_loop)
+                    return future.result()
+
+                # Fallback
 
                 try:
                     loop = asyncio.get_event_loop()
@@ -132,10 +162,11 @@ async def load_mcp_langgraph_tools(
                         import concurrent.futures
 
                         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                            return pool.submit(asyncio.run, _arun(**kwargs)).result()
-                    return loop.run_until_complete(_arun(**kwargs))
+                            return pool.submit(asyncio.run, _arun(**call_kwargs)).result()
+                    return loop.run_until_complete(_arun(**call_kwargs))
+                                
                 except RuntimeError:
-                    return asyncio.run(_arun(**kwargs))
+                    return asyncio.run(_arun(**call_kwargs))
 
             return StructuredTool.from_function(
                 func=_make_sync,
