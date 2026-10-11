@@ -62,7 +62,7 @@ async def load_mcp_langgraph_tools(
 
     for spec in specs:
         def _build_tool(tool_spec=spec):
-            async def _arun(**kwargs):
+            async def _arun(tool_input=None, **kwargs):
                 started = time.perf_counter()
                 await _emit(
                     {
@@ -78,10 +78,29 @@ async def load_mcp_langgraph_tools(
                         session = sessions.get(tool_spec.server_id)
                         if not session:
                             raise RuntimeError(f"MCP session unavailable: {tool_spec.server_id}")
+                        # Нормализуем входные аргументы: если tool_input передан как dict,
+                        # используем его, иначе собираем из kwargs.
+                        call_args = {}
+                        if isinstance(tool_input, dict):
+                            call_args.update(tool_input)
+                        elif isinstance(tool_input, str):
+                            stripped = tool_input.strip()
+                            if stripped.startswith("{") or stripped.startswith("["):
+                                try:
+                                    call_args.update(json.loads(stripped))
+                                except json.JSONDecodeError:
+                                    call_args["text"] = tool_input
+                            else:
+                                call_args["text"] = tool_input
+                        elif tool_input is not None:
+                            call_args["text"] = str(tool_input)
+                        # kwargs имеют приоритет
+                        call_args.update(kwargs)
+
                         raw = await platform.call_tool(
                             tool_spec.server_id,
                             tool_spec.name,
-                            kwargs,
+                            call_args,
                             mcp_ctx,
                             session,
                         )
@@ -151,7 +170,7 @@ async def load_mcp_langgraph_tools(
                 main_loop = ctx.get("_main_event_loop")
 
                 if main_loop and main_loop.is_running():
-                    future = asyncio.run_coroutine_threadsafe(_arun(**call_kwargs), main_loop)
+                    future = asyncio.run_coroutine_threadsafe(_arun(tool_input=call_kwargs), main_loop)
                     return future.result()
 
                 # Fallback
@@ -162,11 +181,12 @@ async def load_mcp_langgraph_tools(
                         import concurrent.futures
 
                         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                            return pool.submit(asyncio.run, _arun(**call_kwargs)).result()
-                    return loop.run_until_complete(_arun(**call_kwargs))
+                            return pool.submit(asyncio.run, _arun(tool_input=call_kwargs)).result()
+                    return loop.run_until_complete(_arun(tool_input=call_kwargs))
+
                                 
                 except RuntimeError:
-                    return asyncio.run(_arun(**call_kwargs))
+                    return asyncio.run(_arun(tool_input=call_kwargs))
 
             return StructuredTool.from_function(
                 func=_make_sync,
