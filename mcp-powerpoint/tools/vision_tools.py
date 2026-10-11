@@ -289,6 +289,9 @@ def register_tools(mcp):
         """
         Render PPTX slides into PNG images so a vision LLM can inspect them.
 
+        MUST use the exact presentation_id returned by create_presentation (e.g., "presentation_1").
+        DO NOT use literal strings like "<presentation_id>" or "current".
+
         MUST use the exact presentation_id returned by create_presentation.
         DO NOT use words like 'current'.
 
@@ -298,30 +301,43 @@ def register_tools(mcp):
         Set max_slides=0 to render all slides.
         If output_dir is empty, preview will be saved to /preview/<pptx_name>/.
         """
-        # Ищем сохранённый pptx_path по presentation_id
-        pptx_path = None
-        try:
-            from mcp_powerpoint.ppt_mcp_server import presentations
-            pres = presentations.get(presentation_id)
-            if pres is not None:
-                # Пытаемся получить путь из сохранённых файлов
-                # В ppt_mcp_server.py есть функция list_saved_presentations,
-                # но мы не можем её импортировать напрямую из-за циклических зависимостей.
-                # Поэтому ищем в /output файлы, соответствующие presentation_id.
-                output_dir_path = Path("/output")
-                if output_dir_path.exists():
-                    for f in output_dir_path.iterdir():
-                        if f.is_file() and f.suffix.lower() == ".pptx":
-                            # Простейшая эвристика: имя файла содержит presentation_id
-                            if presentation_id in f.stem:
-                                pptx_path = str(f)
-                                break
-        except Exception:
-            pass
+        import os
+        from pathlib import Path
 
-        if not pptx_path:
-            # Fallback: если presentation_id не найден, пробуем использовать его как путь
+        # 1. Жесткая защита от галлюцинаций LLM (буквальные строки со скобками)
+        if "<" in presentation_id or ">" in presentation_id or presentation_id.lower() in ["current", "текущий"]:
+            return {
+                "error": f"Invalid presentation_id: '{presentation_id}'. "
+                         "MUST use the exact ID returned by create_presentation (e.g., 'presentation_1'). "
+                         "DO NOT use '<presentation_id>' or 'current'."
+            }
+
+        # 2. Основное правило: файл должен быть сохранен как /output/{presentation_id}.pptx
+        expected_path = f"/output/{presentation_id}.pptx"
+
+        if os.path.exists(presentation_id) and presentation_id.lower().endswith(".pptx"):
+            # Обратная совместимость: если передан полный путь
             pptx_path = presentation_id
+        elif os.path.exists(expected_path):
+            # Стандартный случай
+            pptx_path = expected_path
+        else:
+            # 3. Fallback: ищем любой .pptx в /output, если имя немного отличается
+            output_dir_path = Path("/output")
+            if output_dir_path.exists():
+                found_files = list(output_dir_path.glob("*.pptx"))
+                if found_files:
+                    # Берем самый свежий файл
+                    found_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                    pptx_path = str(found_files[0])
+                else:
+                    return {
+                        "error": f"File not found for presentation_id '{presentation_id}'. "
+                                 f"Expected path: {expected_path}. "
+                                 "Did you call save_presentation first? Ensure file_path matches the ID."
+                    }
+            else:
+                return {"error": f"Directory /output does not exist."}
 
         return render_presentation_preview_impl(
             pptx_path=pptx_path,
