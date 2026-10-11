@@ -63,20 +63,16 @@ def sync_chat_via_registry(
         req_extra = {"enable_thinking": enable_thinking} if enable_thinking else None
 
         if streaming and stream_callback:
-            acc = ""
-            async for chunk in provider.stream_chat(
-                messages,
-                model_id,
+            # provider.stream_chat внутренне обрабатывает стриминг и вызывает callback.
+            # Он возвращает накопленную строку, а не async generator.
+            return await provider.stream_chat(
+                messages=messages,
+                model=model_id,
+                callback=stream_callback,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 request_extra=req_extra,
-            ):
-                if chunk:
-                    acc += chunk
-                    cont = stream_callback(chunk, acc, "content")
-                    if cont is False:
-                        return acc or None
-            return acc or None
+            )
 
         return await provider.chat(
             messages,
