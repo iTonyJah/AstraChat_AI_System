@@ -111,6 +111,12 @@ class LangGraphOrchestrator:
     Управляет планированием и выполнением задач через StateGraph.
     Использует инструменты из backend/tools/
     """
+
+    # Жёсткий blacklist инструментов, которые никогда не должны попадать в план
+    HARD_BLACKLIST_TOOLS = frozenset({
+        "mcp_pptx_generate_presentation",
+    })
+
     
     def __init__(self):
         # Загружаем все инструменты из backend/tools
@@ -421,6 +427,13 @@ class LangGraphOrchestrator:
                 validated_plan = []
                 for step in (plan or []):
                     if isinstance(step, dict) and step.get("tool") in self.tools_by_name:
+                        tool_name = step.get("tool")
+                        if tool_name in self.HARD_BLACKLIST_TOOLS:
+                            logger.warning(
+                                "[PLANNER] Инструмент '%s' находится в жёстком blacklist и будет отброшен",
+                                tool_name,
+                            )
+                            continue
                         validated_plan.append(step)
                     else:
                         logger.warning("[PLANNER] Отброшен несуществующий инструмент: %s",
