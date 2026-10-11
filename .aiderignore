@@ -1,3 +1,4 @@
 assets/
 venv/
 *.txt
+CONVENTIONS.md

@@ -39,3 +39,4 @@ presentation.pdf
 # Logs
 *.log
 logs/
+.aider*
