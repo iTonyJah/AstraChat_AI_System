@@ -280,7 +280,7 @@ def register_tools(mcp):
 
     @mcp.tool()
     def get_presentation_preview(
-        pptx_path: str,
+        presentation_id: str,
         output_dir: str = "",
         dpi: int = 96,
         max_slides: int = 4,
@@ -289,12 +289,40 @@ def register_tools(mcp):
         """
         Render PPTX slides into PNG images so a vision LLM can inspect them.
 
+        MUST use the exact presentation_id returned by create_presentation.
+        DO NOT use words like 'current'.
+
         Recommended values for local CPU:
         dpi=72..100, max_slides=4..6.
 
         Set max_slides=0 to render all slides.
         If output_dir is empty, preview will be saved to /preview/<pptx_name>/.
         """
+        # Ищем сохранённый pptx_path по presentation_id
+        pptx_path = None
+        try:
+            from mcp_powerpoint.ppt_mcp_server import presentations
+            pres = presentations.get(presentation_id)
+            if pres is not None:
+                # Пытаемся получить путь из сохранённых файлов
+                # В ppt_mcp_server.py есть функция list_saved_presentations,
+                # но мы не можем её импортировать напрямую из-за циклических зависимостей.
+                # Поэтому ищем в /output файлы, соответствующие presentation_id.
+                output_dir_path = Path("/output")
+                if output_dir_path.exists():
+                    for f in output_dir_path.iterdir():
+                        if f.is_file() and f.suffix.lower() == ".pptx":
+                            # Простейшая эвристика: имя файла содержит presentation_id
+                            if presentation_id in f.stem:
+                                pptx_path = str(f)
+                                break
+        except Exception:
+            pass
+
+        if not pptx_path:
+            # Fallback: если presentation_id не найден, пробуем использовать его как путь
+            pptx_path = presentation_id
+
         return render_presentation_preview_impl(
             pptx_path=pptx_path,
             output_dir=output_dir or None,
