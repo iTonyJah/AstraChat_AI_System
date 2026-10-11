@@ -4,3 +4,4 @@ Pillow
 fonttools
 fastapi
 pypdfium2>=4.30.0
+pydantic>=2.7.0,<2.10.0
