@@ -347,8 +347,16 @@ class LangGraphOrchestrator:
 }}
 
 ПОМНИ:
-- Если запрос содержит слова "промпт", "создай", "напиши промпт", "улучши промпт" - ВСЕГДА используй инструменты!
-- Если запрос про презентацию или слайды: используй MCP-PowerPoint инструменты из списка точных имён; после save_presentation вызови get_presentation_preview с параметрами max_slides=2, dpi=72, если такой инструмент доступен.
+⚠️ ЗАПРЕЩЁННЫЕ ИНСТРУМЕНТЫ:
+- НЕ используй mcp_pptx_auto_generate_presentation — он требует предварительной загрузки презентации.
+- Вместо него используй последовательность: create_presentation → add_slide (×N) → save_presentation → get_presentation_preview
+- Если запрос содержит слова "промпт", "создай", "напиши промпт", "улучши промпт" — ВСЕГДА используй инструменты!
+- Если запрос про ПРЕЗЕНТАЦИЮ (.pptx, слайды, доклад, deck):
+  1. {{"tool": "create_presentation", "input": {{"title": "название"}}}}  ← вернёт presentation_id
+  2. {{"tool": "add_slide", "input": {{"presentation_id": "<id>", "title": "...", "content": "..."}}}} (повтори N раз)
+  3. {{"tool": "save_presentation", "input": {{"presentation_id": "<id>", "file_path": "/output/demo.pptx"}}}}  ← вернёт pptx_path
+  4. {{"tool": "get_presentation_preview", "input": {{"pptx_path": "/output/demo.pptx", "max_slides": 3, "dpi": 72, "include_base64": true}}}}
+  ⚠️ pptx_path ОБЯЗАТЕЛЕН — бери из шага 3. Без него Pydantic выдаст ошибку валидации.
 - Если нужного инструмента нет в списке точных имён, верни needs_tools: false и в reasoning укажи, что инструмент недоступен.
 
 Твой ответ (ТОЛЬКО JSON):"""
