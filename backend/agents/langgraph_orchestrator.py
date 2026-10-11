@@ -361,8 +361,8 @@ class LangGraphOrchestrator:
   1. {{"tool": "create_presentation", "input": {{"title": "название"}}}}  ← вернёт presentation_id
   2. {{"tool": "add_slide", "input": {{"presentation_id": "<id>", "title": "...", "content": "..."}}}} (повтори N раз)
   3. {{"tool": "save_presentation", "input": {{"presentation_id": "<id>", "file_path": "/output/demo.pptx"}}}}  ← вернёт pptx_path
-  4. {{"tool": "get_presentation_preview", "input": {{"pptx_path": "/output/demo.pptx", "max_slides": 3, "dpi": 72, "include_base64": true}}}}
-  ⚠️ pptx_path ОБЯЗАТЕЛЕН — бери из шага 3. Без него Pydantic выдаст ошибку валидации.
+  4. {{"tool": "get_presentation_preview", "input": {{"presentation_id": "<id>", "max_slides": 3, "dpi": 72, "include_base64": true}}}}
+  ⚠️ ВАЖНО: Для get_presentation_preview передавай ИМЕННО presentation_id, полученный на шаге 1. Не выдумывай пути и не используй слова вроде 'current'.
 - Если нужного инструмента нет в списке точных имён, верни needs_tools: false и в reasoning укажи, что инструмент недоступен.
 
 Твой ответ (ТОЛЬКО JSON):"""
