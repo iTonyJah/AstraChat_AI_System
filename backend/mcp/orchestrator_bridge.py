@@ -14,12 +14,16 @@ log = get_logger(__name__)
 
 def _run_async(coro):
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, coro).result()
-        return loop.run_until_complete(coro)
+        # Проверяем, запущен ли loop (мы можем быть внутри ThreadPoolExecutor с запущенным циклом)
+        asyncio.get_running_loop()
+        import contextvars
+        _cef_ctx = contextvars.copy_context()
+        def _run_in_ctx():
+            return asyncio.run(coro)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(_cef_ctx.run, _run_in_ctx).result()
     except RuntimeError:
+        # Нет запущенного event loop — создаем свой
         return asyncio.run(coro)
 
 
