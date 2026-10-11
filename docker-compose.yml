@@ -222,6 +222,7 @@ services:
       - SVC_RAG_URL=http://svc-rag:8000/v1
       # ComfyUI в compose: бэкенд ходит на сервис comfyui (перекрывает comfyui_base_url из YAML при генерации картинок)
       - IMAGE_GEN_COMFYUI_URL=http://comfyui:8188
+      - IMAGE_GEN_CHAT_TRIGGERS=false
     depends_on:
       # comfyui:
         # condition: service_started
