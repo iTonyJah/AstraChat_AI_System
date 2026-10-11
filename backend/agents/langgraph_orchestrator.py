@@ -42,7 +42,7 @@ def _get_ask_agent():
             history=None,
             streaming=False,
             stream_callback=None,
-            max_tokens=500,
+            max_tokens=2000,  # Увеличено для корректной генерации сложного JSON-плана
             model_path=None,
             **kwargs,
         ):
@@ -378,7 +378,7 @@ class LangGraphOrchestrator:
                 planning_prompt,
                 history=[],
                 streaming=False,
-                max_tokens=500,
+                max_tokens=2000,  # Увеличено для корректной генерации сложного JSON-плана
                 model_path=state.get("context", {}).get("selected_model")
             )
             
